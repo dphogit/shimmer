@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using Shimmer.Errors;
 using Shimmer.Parsing.Expressions;
 using Shimmer.Representation;
 using Shimmer.Scanning;
@@ -11,22 +10,20 @@ public class TreeWalkInterpreter : IInterpreter
     private class RuntimeException(string message) : Exception(message);
 
     private readonly TextWriter _outputWriter;
-    private readonly IErrorReporter _errorReporter;
+    private readonly TextWriter _errorWriter;
+
 
     /// <summary>
     /// The interpreter walks the given AST in its <see cref="Interpret"/> method,
-    /// redirecting all output to the given <paramref name="outputWriter" />
+    /// redirecting stdout to the given <paramref name="outputWriter" /> and errors
+    /// to <paramref name="errorWriter"/>
     /// </summary>
-    /// <param name="outputWriter"></param>
-    /// <param name="errorReporter"></param>
-    public TreeWalkInterpreter(TextWriter outputWriter, IErrorReporter errorReporter)
+    /// <param name="outputWriter">Defaults to <see cref="Console.Out"/>.</param>
+    /// <param name="errorWriter">Defaults to <see cref="Console.Error"/>.</param>
+    public TreeWalkInterpreter(TextWriter? outputWriter = null, TextWriter? errorWriter = null)
     {
-        _outputWriter = outputWriter;
-        _errorReporter = errorReporter;
-    }
-
-    public TreeWalkInterpreter(TextWriter outputWriter) : this(outputWriter, new ConsoleErrorReporter())
-    {
+        _outputWriter = outputWriter ?? Console.Out;
+        _errorWriter = errorWriter ?? Console.Error;
     }
 
     public void Interpret(Expr expr)
@@ -34,11 +31,11 @@ public class TreeWalkInterpreter : IInterpreter
         try
         {
             var value = Eval(expr);
-            _outputWriter.Write(value);
+            _outputWriter.WriteLine(value);
         }
         catch (RuntimeException e)
         {
-            _errorReporter.ReportError(e.Message);
+            _errorWriter.WriteLine(e.Message);
         }
     }
 

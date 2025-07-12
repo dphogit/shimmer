@@ -1,6 +1,7 @@
 ﻿using Shimmer.Interpreter;
 using Shimmer.Parsing.Expressions;
 using Shimmer.Scanning;
+using Shimmer.UnitTests.Helpers;
 
 namespace Shimmer.UnitTests.Interpreter;
 
@@ -21,7 +22,7 @@ public class TreeWalkInterpreterTests
         interpreter.Interpret(expr);
         
         // Assert
-        Assert.Equal("3", sw.ToString());
+        sw.AssertOutput("3");
     }
     
     [Fact]
@@ -37,7 +38,7 @@ public class TreeWalkInterpreterTests
         interpreter.Interpret(expr);
         
         // Assert
-        Assert.Equal("1", sw.ToString());
+        sw.AssertOutput("1");
     }
 
     [Fact]
@@ -54,7 +55,7 @@ public class TreeWalkInterpreterTests
         interpreter.Interpret(expr);
         
         // Assert
-        Assert.Equal("0", sw.ToString());
+        sw.AssertOutput("0");
     }
     
     // TODO: Add test for unsupported operand types for binary expressions when other value types are implemented

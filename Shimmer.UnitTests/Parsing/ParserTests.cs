@@ -1,8 +1,7 @@
-﻿using Moq;
-using Shimmer.Errors;
-using Shimmer.Parsing;
+﻿using Shimmer.Parsing;
 using Shimmer.Parsing.Expressions;
 using Shimmer.Scanning;
+using Shimmer.UnitTests.Helpers;
 
 namespace Shimmer.UnitTests.Parsing;
 
@@ -41,15 +40,15 @@ public class ParserTests
     {
         // Arrange
         var scanner = new Scanner("1 + -");
-        var errorReporterMock = new Mock<IErrorReporter>();
+        var errorWriter = new StringWriter();
         
-        var parser = new Parser(scanner, errorReporterMock.Object);
+        var parser = new Parser(scanner, errorWriter);
         
         // Act
         var expr = parser.Parse();
         
         // Assert
         Assert.Null(expr);
-        errorReporterMock.Verify(r => r.ReportError("[Line 1, Col 5] Error at '-': Expected expression."));
+        errorWriter.AssertOutput("[Line 1, Col 5] Error at '-': Expected expression.");
     }
 }

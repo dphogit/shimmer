@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using Shimmer.Errors;
 using Shimmer.Parsing.Expressions;
 using Shimmer.Representation;
 using Shimmer.Scanning;
@@ -14,17 +13,17 @@ public class Parser
     private class ParseException : Exception;
 
     private readonly IScanner _scanner;
-    private readonly IErrorReporter _errorReporter;
+    private readonly TextWriter _errorWriter;
 
-    public Parser(IScanner scanner, IErrorReporter errorReporter)
+    public Parser(IScanner scanner, TextWriter errorWriter)
     {
         _scanner = scanner;
-        _errorReporter = errorReporter;
+        _errorWriter = errorWriter;
 
         Advance();
     }
 
-    public Parser(string source) : this(new Scanner(source), new ConsoleErrorReporter())
+    public Parser(string source) : this(new Scanner(source), Console.Error)
     {
     }
 
@@ -109,7 +108,7 @@ public class Parser
 
         sb.Append($"{location}: {message}");
         
-        _errorReporter.ReportError(sb.ToString());
+        _errorWriter.Write(sb.ToString());
         return new ParseException();
     }
 }
