@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shimmer.Lang", "Shimmer.Lang\Shimmer.Lang.csproj", "{EB2CB338-1EFA-42EE-A788-050F72EE88C7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shimmer.UnitTests", "Shimmer.UnitTests\Shimmer.UnitTests.csproj", "{D51CB8F6-7191-43B4-972E-CBDB48FFED2D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EB2CB338-1EFA-42EE-A788-050F72EE88C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB2CB338-1EFA-42EE-A788-050F72EE88C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB2CB338-1EFA-42EE-A788-050F72EE88C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB2CB338-1EFA-42EE-A788-050F72EE88C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D51CB8F6-7191-43B4-972E-CBDB48FFED2D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D51CB8F6-7191-43B4-972E-CBDB48FFED2D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D51CB8F6-7191-43B4-972E-CBDB48FFED2D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D51CB8F6-7191-43B4-972E-CBDB48FFED2D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
