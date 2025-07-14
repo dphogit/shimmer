@@ -9,7 +9,22 @@ public class ScannerTests
     [Theory]
     [InlineData("+", TokenType.Plus)]
     [InlineData("-", TokenType.Minus)]
+    [InlineData("*", TokenType.Star)]
+    [InlineData("/", TokenType.Slash)]
+    [InlineData("=", TokenType.Equal)]
+    [InlineData("!", TokenType.Bang)]
+    [InlineData("(", TokenType.LeftParen)]
+    [InlineData(")", TokenType.RightParen)]
+    [InlineData("<", TokenType.Less)]
+    [InlineData("<=", TokenType.LessEqual)]
+    [InlineData(">", TokenType.Greater)]
+    [InlineData(">=", TokenType.GreaterEqual)]
+    [InlineData("==", TokenType.EqualEqual)]
+    [InlineData("!=", TokenType.BangEqual)]
     [InlineData("123", TokenType.Number)]
+    [InlineData("false", TokenType.False)]
+    [InlineData("true", TokenType.True)]
+    [InlineData("myVariableName", TokenType.Identifier)]
     public void NextToken_ReturnsExpectedToken(string source, TokenType type)
     {
         // Arrange

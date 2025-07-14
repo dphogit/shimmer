@@ -3,4 +3,5 @@
 public enum ShimmerType
 {
     Number,
+    Bool,
 }

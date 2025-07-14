@@ -15,7 +15,7 @@ public class TreeWalkInterpreter : IInterpreter
 
     /// <summary>
     /// The interpreter walks the given AST in its <see cref="Interpret"/> method,
-    /// redirecting stdout to the given <paramref name="outputWriter" /> and errors
+    /// redirecting output to <paramref name="outputWriter" /> and errors
     /// to <paramref name="errorWriter"/>
     /// </summary>
     /// <param name="outputWriter">Defaults to <see cref="Console.Out"/>.</param>
@@ -45,6 +45,7 @@ public class TreeWalkInterpreter : IInterpreter
         {
             BinaryExpr binaryExpr => EvalBinaryExpr(binaryExpr),
             LiteralExpr literalExpr => EvalLiteralExpr(literalExpr),
+            GroupExpr groupExpr => Eval(groupExpr.Expr),
             _ => throw new UnreachableException($"Unknown expression type '{expr.GetType().Name}'")
         };
     }
@@ -58,19 +59,64 @@ public class TreeWalkInterpreter : IInterpreter
         {
             case TokenType.Plus:
             {
-                if (left.IsNumber && right.IsNumber)
-                    return ShimmerValue.Number(left.AsNumber() + right.AsNumber());
-
-                throw UnsupportedOperandTypeBinary(op, left.Type, right.Type);
+                CheckOperandsAreNumbers(left, right);
+                return ShimmerValue.Number(left.AsNumber() + right.AsNumber());
             }
             case TokenType.Minus:
             {
-                if (left.IsNumber && right.IsNumber)
-                    return ShimmerValue.Number(left.AsNumber() - right.AsNumber());
-                throw UnsupportedOperandTypeBinary(op, left.Type, right.Type);
+                CheckOperandsAreNumbers(left, right);
+                return ShimmerValue.Number(left.AsNumber() - right.AsNumber());
+            }
+            case TokenType.Star:
+            {
+                CheckOperandsAreNumbers(left, right);
+                return ShimmerValue.Number(left.AsNumber() * right.AsNumber());
+            }
+            case TokenType.Slash:
+            {
+                CheckOperandsAreNumbers(left, right);
+
+                if (right.AsNumber() == 0)
+                    throw RuntimeError(op, "Division by 0.");
+
+                return ShimmerValue.Number(left.AsNumber() / right.AsNumber());
+            }
+            case TokenType.Less:
+            {
+                CheckOperandsAreNumbers(left, right);
+                return ShimmerValue.Bool(left.AsNumber() < right.AsNumber());
+            }
+            case TokenType.LessEqual:
+            {
+                CheckOperandsAreNumbers(left, right);
+                return ShimmerValue.Bool(left.AsNumber() <= right.AsNumber());
+            }
+            case TokenType.EqualEqual:
+            {
+                return ShimmerValue.Bool(left.Equals(right));
+            }
+            case TokenType.BangEqual:
+            {
+                return ShimmerValue.Bool(!left.Equals(right));
+            }
+            case TokenType.Greater:
+            {
+                CheckOperandsAreNumbers(left, right);
+                return ShimmerValue.Bool(left.AsNumber() > right.AsNumber());
+            }
+            case TokenType.GreaterEqual:
+            {
+                CheckOperandsAreNumbers(left, right);
+                return ShimmerValue.Bool(left.AsNumber() >= right.AsNumber());
             }
             default:
                 throw new InvalidOperationException($"Unsupported binary operator: '{op.Type}'");
+        }
+
+        void CheckOperandsAreNumbers(ShimmerValue leftValue, ShimmerValue rightValue)
+        {
+            if (!leftValue.IsNumber || !rightValue.IsNumber)
+                throw UnsupportedOperandTypeBinary(op, leftValue.Type, rightValue.Type);
         }
     }
 
@@ -78,7 +124,7 @@ public class TreeWalkInterpreter : IInterpreter
 
     private static RuntimeException RuntimeError(Token token, string message)
     {
-        var error = $"[Line {token.Line}] Runtime Error: {message}";
+        var error = $"[Line {token.Line}] Runtime error: {message}";
         return new RuntimeException(error);
     }
 

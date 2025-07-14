@@ -7,48 +7,82 @@ namespace Shimmer.UnitTests.Parsing;
 
 public class ParserTests
 {
-    [Fact]
-    public void Parse_Add_ReturnsExpectedBinaryExpr()
+    [Theory]
+    [InlineData("1 + 2", "(1 + 2)", TestDisplayName = "Addition")]
+    [InlineData("1 - 2", "(1 - 2)", TestDisplayName = "Subtraction")]
+    [InlineData("1 * 2", "(1 * 2)", TestDisplayName = "Multiplication")]
+    [InlineData("1 / 2", "(1 / 2)", TestDisplayName = "Division")]
+    [InlineData("1 < 2", "(1 < 2)", TestDisplayName = "Less Than")]
+    [InlineData("1 <= 2", "(1 <= 2)", TestDisplayName = "Less Than Equal")]
+    [InlineData("1 > 2", "(1 > 2)", TestDisplayName = "Less Than")]
+    [InlineData("1 >= 2", "(1 >= 2)", TestDisplayName = "Less Than Equal")]
+    [InlineData("1 == 2", "(1 == 2)", TestDisplayName = "Equality")]
+    [InlineData("1 != 2", "(1 != 2)", TestDisplayName = "Inequality")]
+    [InlineData("1 + 2 - 3", "((1 + 2) - 3)", TestDisplayName = "Left Associativity")]
+    [InlineData("6 / 3 + 1", "((6 / 3) + 1)", TestDisplayName = "Operator Precedence")]
+    public void Parse_BinaryOperator_ReturnsBinaryExpr(string expression, string expected)
     {
         // Arrange
-        var parser = new Parser("1 + 2");
+        var parser = new Parser(expression);
+
+        // Act
+        var expr = parser.Parse();
+
+        // Assert
+        var binaryExpr = Assert.IsType<BinaryExpr>(expr);
+        Assert.Equal(expected, binaryExpr.ToString());
+    }
+
+    [Theory]
+    [InlineData("1")]
+    [InlineData("true")]
+    [InlineData("false")]
+    public void Parse_Literal_ReturnsLiteralExpr(string source)
+    {
+        // Arrange
+        var parser = new Parser(source);
         
         // Act
         var expr = parser.Parse();
         
         // Assert
-        var binaryExpr = Assert.IsType<BinaryExpr>(expr);
-        Assert.Equal("(1 + 2)", binaryExpr.ToString());
+        var literalExpr = Assert.IsType<LiteralExpr>(expr);
+        Assert.Equal(source, literalExpr.ToString());
     }
 
     [Fact]
-    public void Parse_LeftAssociative_ReturnsExpectedBinaryExpr()
+    public void Parse_Parenthesis_ReturnsGroupExpr()
     {
         // Arrange
-        var parser = new Parser("1 + 2 - 3");
-        
+        var parser = new Parser("(1 + 2)");
+
         // Act
         var expr = parser.Parse();
-        
+
         // Assert
-        var binaryExpr = Assert.IsType<BinaryExpr>(expr);
-        Assert.Equal("((1 + 2) - 3)", binaryExpr.ToString());
+        var groupExpr = Assert.IsType<GroupExpr>(expr);
+        Assert.Equal("(1 + 2)", groupExpr.ToString());
     }
 
-    [Fact]
-    public void Parse_InvalidExpression_ReturnsNullAndReportsError()
+    [Theory]
+    [InlineData("1 + -", "[Line 1, Col 5] Error at '-': Expected expression.", TestDisplayName = "Invalid Expression")]
+    [InlineData("(1 + 2", "[Line 1, Col 6] Error at end: Expected ')' after expression.",
+        TestDisplayName = "No Closing Parenthesis")]
+    // [InlineData("1 + 2)", "[Line 1, Col 6] Error at ')': Expected expression.",
+    //     TestDisplayName = "No Opening Parenthesis")] // TODO: Add when statements implemented
+    public void Parse_InvalidSyntax_ReturnsNullAndReportsError(string source, string expected)
     {
         // Arrange
-        var scanner = new Scanner("1 + -");
+        var scanner = new Scanner(source);
         var errorWriter = new StringWriter();
-        
+
         var parser = new Parser(scanner, errorWriter);
-        
+
         // Act
         var expr = parser.Parse();
-        
+
         // Assert
         Assert.Null(expr);
-        errorWriter.AssertOutput("[Line 1, Col 5] Error at '-': Expected expression.");
+        errorWriter.AssertOutput(expected);
     }
 }

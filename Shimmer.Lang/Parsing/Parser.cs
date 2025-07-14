@@ -40,32 +40,57 @@ public class Parser
         }
     }
 
-    private Expr Expression() => Term();
+    private Expr Expression() => Equality();
 
-    private Expr Term()
-    {
-        var expr = Primary();
+    private Expr Equality() => LeftAssociativeBinaryOperator(Comparison, TokenType.EqualEqual, TokenType.BangEqual);
 
-        while (Match(TokenType.Plus, TokenType.Minus))
-        {
-            var op = _prev;
-            var right = Primary();
-            expr = new BinaryExpr(expr, op, right);
-        }
+    private Expr Comparison() => LeftAssociativeBinaryOperator(Term, TokenType.Less, TokenType.LessEqual,
+        TokenType.Greater, TokenType.GreaterEqual);
 
-        return expr;
-    }
+    private Expr Term() => LeftAssociativeBinaryOperator(Factor, TokenType.Plus, TokenType.Minus);
 
+    private Expr Factor() => LeftAssociativeBinaryOperator(Primary, TokenType.Star, TokenType.Slash);
+    
     private Expr Primary()
     {
         if (Match(TokenType.Number))
             return Number();
+
+        if (Match(TokenType.LeftParen))
+            return Grouping();
+
+        if (Match(TokenType.False))
+            return LiteralExpr.False;
+        
+        if (Match(TokenType.True))
+            return LiteralExpr.True;
 
         throw Error(_current, "Expected expression.");
     }
 
     private LiteralExpr Number() => new(ShimmerValue.Number(double.Parse(_prev.Lexeme)));
 
+    private GroupExpr Grouping()
+    {
+        var innerExpr = Expression();
+        Consume(TokenType.RightParen, "Expected ')' after expression.");
+        return new GroupExpr(innerExpr);
+    }
+
+    private Expr LeftAssociativeBinaryOperator(Func<Expr> rule, params TokenType[] types)
+    {
+        var expr = rule();
+
+        while (Match(types))
+        {
+            var @operator = _prev;
+            var right = rule();
+            expr = new BinaryExpr(expr, @operator, right);
+        }
+        
+        return expr;
+    }
+    
     private void Advance()
     {
         _prev = _current;
@@ -91,6 +116,17 @@ public class Parser
 
         Advance();
         return true;
+    }
+
+    private void Consume(TokenType type, string message)
+    {
+        if (_current.Type == type)
+        {
+            Advance();
+            return;
+        }
+
+        throw Error(_current, message);
     }
 
     private ParseException Error(Token token, string message)

@@ -6,4 +6,10 @@ public static class TextWriterExtensions
     {
         Assert.Equal(expected, writer.ToString()?.Trim());
     }
+
+    public static void AssertRuntimeError(this TextWriter writer, int line, string message)
+    {
+        var expected = $"[Line {line}] Runtime error: {message}";
+        Assert.Equal(expected, writer.ToString()?.Trim());
+    }
 }

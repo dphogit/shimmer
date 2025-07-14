@@ -19,6 +19,9 @@ public class Scanner(string source) : IScanner
         
         var c = Advance();
 
+        if (IsAlpha(c))
+            return IdentifierOrKeyword();
+
         if (char.IsAsciiDigit(c))
             return Number();
 
@@ -26,8 +29,25 @@ public class Scanner(string source) : IScanner
         {
             '+' => _tokenFactory.Plus(),
             '-' => _tokenFactory.Minus(),
+            '*' => _tokenFactory.Star(),
+            '/' => _tokenFactory.Slash(),
+            '(' => _tokenFactory.LeftParen(),
+            ')' => _tokenFactory.RightParen(),
+            '<' => CheckEqual(_tokenFactory.LessEqual(), _tokenFactory.Less()),
+            '>' => CheckEqual(_tokenFactory.GreaterEqual(), _tokenFactory.Greater()),
+            '=' => CheckEqual(_tokenFactory.EqualEqual(), _tokenFactory.Equal()),
+            '!' => CheckEqual(_tokenFactory.BangEqual(), _tokenFactory.Bang()),
             _ => _tokenFactory.Error($"Unexpected character '{c}'.")
         };
+    }
+
+    private Token CheckEqual(Token withEqual, Token withoutEqual)
+    {
+        if (AtEnd() || source[_cur] != '=')
+            return withoutEqual;
+
+        Advance();
+        return withEqual;
     }
 
     private Token Number()
@@ -38,7 +58,22 @@ public class Scanner(string source) : IScanner
             Advance();
 
         _tokenFactory.SetColumn(startCol);
-        return _tokenFactory.Number(source.Substring(_start, _cur - _start));
+        return _tokenFactory.Number(GetLexeme());
+    }
+
+    private Token IdentifierOrKeyword()
+    {
+        var startCol = _column - 1;
+
+        while (IsAlphaNumeric(Peek()))
+            Advance();
+
+        var lexeme = GetLexeme();
+
+        var type = Keywords.GetTokenType(lexeme) ?? TokenType.Identifier;
+        
+        _tokenFactory.SetColumn(startCol);
+        return _tokenFactory.Create(lexeme, type);
     }
 
     private char Advance()
@@ -70,4 +105,10 @@ public class Scanner(string source) : IScanner
     private char Peek() => AtEnd() ? '\0' : source[_cur];
 
     private bool AtEnd() => _cur >= source.Length;
+    
+    private static bool IsAlpha(char c) => char.IsAsciiLetter(c) ||  c == '_';
+
+    private static bool IsAlphaNumeric(char c) => IsAlpha(c) || char.IsAsciiDigit(c);
+    
+    private string GetLexeme() => source.Substring(_start, _cur - _start);
 }
