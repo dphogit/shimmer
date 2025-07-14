@@ -5,7 +5,7 @@ using Shimmer.Scanning;
 
 namespace Shimmer.Parsing;
 
-public class Parser 
+public class Parser
 {
     private Token _current;
     private Token _prev;
@@ -40,7 +40,11 @@ public class Parser
         }
     }
 
-    private Expr Expression() => Equality();
+    private Expr Expression() => LogicOr();
+
+    private Expr LogicOr() => LeftAssociativeBinaryOperator(LogicAnd, TokenType.Or);
+    
+    private  Expr LogicAnd() => LeftAssociativeBinaryOperator(Equality, TokenType.And);
 
     private Expr Equality() => LeftAssociativeBinaryOperator(Comparison, TokenType.EqualEqual, TokenType.BangEqual);
 
@@ -49,8 +53,10 @@ public class Parser
 
     private Expr Term() => LeftAssociativeBinaryOperator(Factor, TokenType.Plus, TokenType.Minus);
 
-    private Expr Factor() => LeftAssociativeBinaryOperator(Primary, TokenType.Star, TokenType.Slash);
-    
+    private Expr Factor() => LeftAssociativeBinaryOperator(Unary, TokenType.Star, TokenType.Slash);
+
+    private Expr Unary() => Match(TokenType.Minus, TokenType.Bang) ? new UnaryExpr(_prev, Unary()) : Primary();
+
     private Expr Primary()
     {
         if (Match(TokenType.Number))
@@ -61,9 +67,12 @@ public class Parser
 
         if (Match(TokenType.False))
             return LiteralExpr.False;
-        
+
         if (Match(TokenType.True))
             return LiteralExpr.True;
+
+        if (Match(TokenType.Nil))
+            return LiteralExpr.Nil;
 
         throw Error(_current, "Expected expression.");
     }
@@ -87,10 +96,10 @@ public class Parser
             var right = rule();
             expr = new BinaryExpr(expr, @operator, right);
         }
-        
+
         return expr;
     }
-    
+
     private void Advance()
     {
         _prev = _current;
@@ -98,7 +107,7 @@ public class Parser
         while (true)
         {
             _current = _scanner.NextToken();
-            
+
             if (_current.Type == TokenType.Error)
             {
                 Error(_current, _current.Lexeme);
@@ -132,7 +141,7 @@ public class Parser
     private ParseException Error(Token token, string message)
     {
         // TODO: Add Panic Mode Flag to not cascade errors - add during synchronization.
-        
+
         StringBuilder sb = new($"[Line {token.Line}, Col {token.Column}] Error");
 
         var location = token.Type switch
@@ -143,7 +152,7 @@ public class Parser
         };
 
         sb.Append($"{location}: {message}");
-        
+
         _errorWriter.Write(sb.ToString());
         return new ParseException();
     }

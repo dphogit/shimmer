@@ -21,9 +21,12 @@ public class ScannerTests
     [InlineData(">=", TokenType.GreaterEqual)]
     [InlineData("==", TokenType.EqualEqual)]
     [InlineData("!=", TokenType.BangEqual)]
+    [InlineData("&&", TokenType.And)]
+    [InlineData("||", TokenType.Or)]
     [InlineData("123", TokenType.Number)]
     [InlineData("false", TokenType.False)]
     [InlineData("true", TokenType.True)]
+    [InlineData("nil", TokenType.Nil)]
     [InlineData("myVariableName", TokenType.Identifier)]
     public void NextToken_ReturnsExpectedToken(string source, TokenType type)
     {
@@ -86,6 +89,22 @@ public class ScannerTests
         // Arrange
         var scanner = new Scanner("$");
         var errorToken = _tokenFactory.Error("Unexpected character '$'.");
+        
+        // Act
+        var token = scanner.NextToken();
+        
+        // Assert
+        Assert.Equal(errorToken, token);
+    }
+
+    [Theory]
+    [InlineData('|')]
+    [InlineData('&')]
+    public void NextToken_UnexpectedSingleChar_ReturnsErrorToken(char c)
+    {
+        // Arrange
+        var scanner = new Scanner($"{c}");
+        var errorToken = _tokenFactory.Error($"'{c}' not supported. Did you mean '{c}{c}'?");
         
         // Act
         var token = scanner.NextToken();

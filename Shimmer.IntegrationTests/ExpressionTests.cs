@@ -33,6 +33,8 @@ public class ExpressionTests
     [InlineData("1 < 2 == 2 > 1", TestDisplayName = "Operator Precedence")]
     [InlineData("true == true", TestDisplayName = "Boolean Equality")]
     [InlineData("false != true", TestDisplayName = "Boolean Inequality")]
+    [InlineData("nil == nil", TestDisplayName = "Nil Equals Nil")]
+    [InlineData("nil != 3", TestDisplayName = "Nil Equality Different Type")]
     public void Relational_EvaluatesTrue(string expression)
     {
         var output = new StringWriter();
@@ -42,5 +44,45 @@ public class ExpressionTests
 
         Assert.True(success);
         output.AssertOutput("true");
+    }
+
+    [Theory]
+    [InlineData("true || false", "true", TestDisplayName = "Logical Or Short Circuit")]
+    [InlineData("1 || false", "1", TestDisplayName = "Logical Or Truthy First Operand")]
+    [InlineData("false || nil", "nil", TestDisplayName = "Logical Or Falsy First Operand")]
+    [InlineData("false && true", "false", TestDisplayName = "Logical And Short Circuit")]
+    [InlineData("nil && 1", "nil", TestDisplayName = "Logical And Falsy First Operand")]
+    [InlineData("true && 2", "2", TestDisplayName = "Logical And Both True")]
+    [InlineData("true && true && nil", "nil", TestDisplayName = "Multiple Logical And")]
+    [InlineData("false || nil || 1", "1", TestDisplayName = "Multiple Logical Or")]
+    public void Logical_EvaluatesTrue(string expression, string expected)
+    {
+        var output = new StringWriter();
+        var driver = new ShimmerDriver(output);
+        
+        var success = driver.Run(expression);
+        
+        Assert.True(success);
+        output.AssertOutput(expected);
+    }
+
+    [Theory]
+    [InlineData("!false", "true", TestDisplayName = "Logical Not False")]
+    [InlineData("!true", "false", TestDisplayName = "Logical Not True")]
+    [InlineData("!!true", "true", TestDisplayName = "Double Logical Not")]
+    [InlineData("!!!true", "false", TestDisplayName = "Triple Logical Not")]
+    [InlineData("!nil", "true", TestDisplayName = "Logical Not Falsy Value")]
+    [InlineData("-1", "-1", TestDisplayName = "Negation")]
+    [InlineData("--1", "1", TestDisplayName = "Double Negation")]
+    [InlineData("---1", "-1", TestDisplayName = "Triple Negation")]
+    public void Unary_EvaluatesCorrectly(string expression, string expected)
+    {
+        var output = new StringWriter();
+        var driver = new ShimmerDriver(output);
+        
+        var success = driver.Run(expression);
+        
+        Assert.True(success);
+        output.AssertOutput(expected);
     }
 }

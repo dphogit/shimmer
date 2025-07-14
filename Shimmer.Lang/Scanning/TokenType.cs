@@ -16,10 +16,13 @@ public enum TokenType
     GreaterEqual,
     LeftParen,
     RightParen,
+    And,
+    Or,
     
     Number,
     False,
     True,
+    Nil,
     Identifier,
     
     Error,

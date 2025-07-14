@@ -7,8 +7,9 @@ public static class Keywords
     private static readonly ReadOnlyDictionary<string, TokenType> KeywordToType = new(
         new Dictionary<string, TokenType>()
         {
-            ["true"] = TokenType.True,
             ["false"] = TokenType.False,
+            ["nil"] = TokenType.Nil,
+            ["true"] = TokenType.True,
         });
 
     public static TokenType? GetTokenType(string keyword) =>

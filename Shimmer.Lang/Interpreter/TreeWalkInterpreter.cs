@@ -12,7 +12,6 @@ public class TreeWalkInterpreter : IInterpreter
     private readonly TextWriter _outputWriter;
     private readonly TextWriter _errorWriter;
 
-
     /// <summary>
     /// The interpreter walks the given AST in its <see cref="Interpret"/> method,
     /// redirecting output to <paramref name="outputWriter" /> and errors
@@ -39,57 +38,72 @@ public class TreeWalkInterpreter : IInterpreter
         }
     }
 
-    private ShimmerValue Eval(Expr expr)
+    private ShimmerValue Eval(Expr expr) => expr switch
     {
-        return expr switch
-        {
-            BinaryExpr binaryExpr => EvalBinaryExpr(binaryExpr),
-            LiteralExpr literalExpr => EvalLiteralExpr(literalExpr),
-            GroupExpr groupExpr => Eval(groupExpr.Expr),
-            _ => throw new UnreachableException($"Unknown expression type '{expr.GetType().Name}'")
-        };
-    }
+        BinaryExpr binaryExpr => EvalBinaryExpr(binaryExpr),
+        GroupExpr groupExpr => Eval(groupExpr.Expr),
+        LiteralExpr literalExpr => literalExpr.Value,
+        UnaryExpr unaryExpr => EvalUnaryExpr(unaryExpr),
+        _ => throw new UnreachableException($"Unknown expression type '{expr.GetType().Name}'")
+    };
 
     private ShimmerValue EvalBinaryExpr(BinaryExpr binaryExpr)
     {
-        ShimmerValue left = Eval(binaryExpr.Left), right = Eval(binaryExpr.Right);
         var op = binaryExpr.Op;
+
+        // First check for logical operators because we don't want to evaluate
+        // both operands as these operations can short-circuit on the first operand.
+        switch (op.Type)
+        {
+            case TokenType.And:
+            {
+                var leftAnd = Eval(binaryExpr.Left);
+                return IsFalsy(leftAnd) ? leftAnd : Eval(binaryExpr.Right);
+            }
+            case TokenType.Or:
+            {
+                var leftOr = Eval(binaryExpr.Left);
+                return !IsFalsy(leftOr) ? leftOr : Eval(binaryExpr.Right);
+            }
+        }
+
+        ShimmerValue left = Eval(binaryExpr.Left), right = Eval(binaryExpr.Right);
 
         switch (op.Type)
         {
             case TokenType.Plus:
             {
                 CheckOperandsAreNumbers(left, right);
-                return ShimmerValue.Number(left.AsNumber() + right.AsNumber());
+                return ShimmerValue.Number(left.AsNumber + right.AsNumber);
             }
             case TokenType.Minus:
             {
                 CheckOperandsAreNumbers(left, right);
-                return ShimmerValue.Number(left.AsNumber() - right.AsNumber());
+                return ShimmerValue.Number(left.AsNumber - right.AsNumber);
             }
             case TokenType.Star:
             {
                 CheckOperandsAreNumbers(left, right);
-                return ShimmerValue.Number(left.AsNumber() * right.AsNumber());
+                return ShimmerValue.Number(left.AsNumber * right.AsNumber);
             }
             case TokenType.Slash:
             {
                 CheckOperandsAreNumbers(left, right);
 
-                if (right.AsNumber() == 0)
+                if (right.AsNumber == 0)
                     throw RuntimeError(op, "Division by 0.");
 
-                return ShimmerValue.Number(left.AsNumber() / right.AsNumber());
+                return ShimmerValue.Number(left.AsNumber / right.AsNumber);
             }
             case TokenType.Less:
             {
                 CheckOperandsAreNumbers(left, right);
-                return ShimmerValue.Bool(left.AsNumber() < right.AsNumber());
+                return ShimmerValue.Bool(left.AsNumber < right.AsNumber);
             }
             case TokenType.LessEqual:
             {
                 CheckOperandsAreNumbers(left, right);
-                return ShimmerValue.Bool(left.AsNumber() <= right.AsNumber());
+                return ShimmerValue.Bool(left.AsNumber <= right.AsNumber);
             }
             case TokenType.EqualEqual:
             {
@@ -102,12 +116,12 @@ public class TreeWalkInterpreter : IInterpreter
             case TokenType.Greater:
             {
                 CheckOperandsAreNumbers(left, right);
-                return ShimmerValue.Bool(left.AsNumber() > right.AsNumber());
+                return ShimmerValue.Bool(left.AsNumber > right.AsNumber);
             }
             case TokenType.GreaterEqual:
             {
                 CheckOperandsAreNumbers(left, right);
-                return ShimmerValue.Bool(left.AsNumber() >= right.AsNumber());
+                return ShimmerValue.Bool(left.AsNumber >= right.AsNumber);
             }
             default:
                 throw new InvalidOperationException($"Unsupported binary operator: '{op.Type}'");
@@ -120,7 +134,24 @@ public class TreeWalkInterpreter : IInterpreter
         }
     }
 
-    private static ShimmerValue EvalLiteralExpr(LiteralExpr literalExpr) => literalExpr.Value;
+    private ShimmerValue EvalUnaryExpr(UnaryExpr unaryExpr)
+    {
+        var op = unaryExpr.Op;
+        var operand = Eval(unaryExpr.Expr);
+
+        return op.Type switch
+        {
+            TokenType.Minus => operand.IsNumber
+                ? ShimmerValue.Number(-operand.AsNumber)
+                : throw UnsupportedOperandTypeUnary(op, operand.Type),
+
+            TokenType.Bang => IsFalsy(operand) ? ShimmerValue.True : ShimmerValue.False,
+
+            _ => throw new InvalidOperationException($"Unsupported unary operator: '{op.Type}'")
+        };
+    }
+
+    private static bool IsFalsy(ShimmerValue value) => value.IsNil || value is { IsBool: true, AsBool: false };
 
     private static RuntimeException RuntimeError(Token token, string message)
     {
@@ -128,9 +159,9 @@ public class TreeWalkInterpreter : IInterpreter
         return new RuntimeException(error);
     }
 
-    private static RuntimeException UnsupportedOperandTypeBinary(Token op, ShimmerType left, ShimmerType right)
-    {
-        var exception = RuntimeError(op, $"Unsupported operand type(s) for '{op.Lexeme}': '{left}' and '{right}'.");
-        return new RuntimeException(exception.Message);
-    }
+    private static RuntimeException UnsupportedOperandTypeUnary(Token op, ShimmerType argType) =>
+        RuntimeError(op, $"Bad operand type for unary '{op.Lexeme}': '{argType}'.");
+
+    private static RuntimeException UnsupportedOperandTypeBinary(Token op, ShimmerType left, ShimmerType right) =>
+        RuntimeError(op, $"Unsupported operand type(s) for '{op.Lexeme}': '{left}' and '{right}'.");
 }

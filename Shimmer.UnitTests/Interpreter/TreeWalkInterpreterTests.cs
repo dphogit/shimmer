@@ -62,7 +62,7 @@ public class TreeWalkInterpreterTests
         // Assert
         sw.AssertOutput(expected);
     }
-
+    
     [Fact]
     public void Interpret_DivideByZero_GivesRuntimeException()
     {
@@ -79,6 +79,22 @@ public class TreeWalkInterpreterTests
         sw.AssertRuntimeError(1, "Division by 0.");
     }
 
+    [Fact]
+    public void Interpret_NegationOperandNotNumber_GivesRuntimeException()
+    {
+        // Arrange
+        var expr = new UnaryExpr(_tokenFactory.Minus(), LiteralExpr.True);
+        
+        var sw = new StringWriter();
+        var interpreter = new TreeWalkInterpreter(errorWriter: sw);
+        
+        // Act
+        interpreter.Interpret(expr);
+        
+        // Assert
+        sw.AssertRuntimeError(1, $"Bad operand type for unary '-': 'Bool'.");
+    }
+
     [Theory]
     [InlineData("+")]
     [InlineData("-")]
@@ -88,7 +104,7 @@ public class TreeWalkInterpreterTests
     [InlineData("<=")]
     [InlineData(">=")]
     [InlineData(">")]
-    public void Interpret_IllegalOperandTypes_GivesRuntimeException(string op)
+    public void Interpret_IllegalBinaryOperands_GivesRuntimeException(string op)
     {
         // Arrange
         var opToken = _tokenFactory.Create(op);

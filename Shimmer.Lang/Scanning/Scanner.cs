@@ -33,21 +33,23 @@ public class Scanner(string source) : IScanner
             '/' => _tokenFactory.Slash(),
             '(' => _tokenFactory.LeftParen(),
             ')' => _tokenFactory.RightParen(),
-            '<' => CheckEqual(_tokenFactory.LessEqual(), _tokenFactory.Less()),
-            '>' => CheckEqual(_tokenFactory.GreaterEqual(), _tokenFactory.Greater()),
-            '=' => CheckEqual(_tokenFactory.EqualEqual(), _tokenFactory.Equal()),
-            '!' => CheckEqual(_tokenFactory.BangEqual(), _tokenFactory.Bang()),
+            '<' => Check('=', _tokenFactory.LessEqual(), _tokenFactory.Less()),
+            '>' => Check('=', _tokenFactory.GreaterEqual(), _tokenFactory.Greater()),
+            '=' => Check('=', _tokenFactory.EqualEqual(), _tokenFactory.Equal()),
+            '!' => Check('=', _tokenFactory.BangEqual(), _tokenFactory.Bang()),
+            '|' => Check('|', _tokenFactory.Or(), _tokenFactory.Error("'|' not supported. Did you mean '||'?")),
+            '&' => Check('&', _tokenFactory.And(), _tokenFactory.Error("'&' not supported. Did you mean '&&'?")),
             _ => _tokenFactory.Error($"Unexpected character '{c}'.")
         };
     }
 
-    private Token CheckEqual(Token withEqual, Token withoutEqual)
+    private Token Check(char c, Token with, Token without)
     {
-        if (AtEnd() || source[_cur] != '=')
-            return withoutEqual;
+        if (AtEnd() || source[_cur] != c)
+            return without;
 
         Advance();
-        return withEqual;
+        return with;
     }
 
     private Token Number()

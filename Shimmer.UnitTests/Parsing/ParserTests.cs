@@ -20,6 +20,8 @@ public class ParserTests
     [InlineData("1 != 2", "(1 != 2)", TestDisplayName = "Inequality")]
     [InlineData("1 + 2 - 3", "((1 + 2) - 3)", TestDisplayName = "Left Associativity")]
     [InlineData("6 / 3 + 1", "((6 / 3) + 1)", TestDisplayName = "Operator Precedence")]
+    [InlineData("true && true", "(true && true)", TestDisplayName = "Logical And")]
+    [InlineData("true || true", "(true || true)", TestDisplayName = "Logical Or")]
     public void Parse_BinaryOperator_ReturnsBinaryExpr(string expression, string expected)
     {
         // Arrange
@@ -37,6 +39,7 @@ public class ParserTests
     [InlineData("1")]
     [InlineData("true")]
     [InlineData("false")]
+    [InlineData("nil")]
     public void Parse_Literal_ReturnsLiteralExpr(string source)
     {
         // Arrange
@@ -48,6 +51,22 @@ public class ParserTests
         // Assert
         var literalExpr = Assert.IsType<LiteralExpr>(expr);
         Assert.Equal(source, literalExpr.ToString());
+    }
+
+    [Theory]
+    [InlineData("-1", "(- 1)")]
+    [InlineData("!false", "(! false)")]
+    public void Parse_UnaryOperator_ReturnsUnaryExpr(string source, string expected)
+    {
+        // Arrange
+        var parser = new Parser(source);
+        
+        // Act
+        var expr  = parser.Parse();
+        
+        // Assert
+        var unaryExpr = Assert.IsType<UnaryExpr>(expr);
+        Assert.Equal(expected, unaryExpr.ToString());
     }
 
     [Fact]
@@ -65,7 +84,7 @@ public class ParserTests
     }
 
     [Theory]
-    [InlineData("1 + -", "[Line 1, Col 5] Error at '-': Expected expression.", TestDisplayName = "Invalid Expression")]
+    [InlineData("1 + *", "[Line 1, Col 5] Error at '*': Expected expression.", TestDisplayName = "Invalid Expression")]
     [InlineData("(1 + 2", "[Line 1, Col 6] Error at end: Expected ')' after expression.",
         TestDisplayName = "No Closing Parenthesis")]
     // [InlineData("1 + 2)", "[Line 1, Col 6] Error at ')': Expected expression.",
