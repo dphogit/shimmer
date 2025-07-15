@@ -41,6 +41,7 @@ public class TreeWalkInterpreter : IInterpreter
     private ShimmerValue Eval(Expr expr) => expr switch
     {
         BinaryExpr binaryExpr => EvalBinaryExpr(binaryExpr),
+        ConditionalExpr conditionalExpr => EvalConditionalExpr(conditionalExpr),
         GroupExpr groupExpr => Eval(groupExpr.Expr),
         LiteralExpr literalExpr => literalExpr.Value,
         UnaryExpr unaryExpr => EvalUnaryExpr(unaryExpr),
@@ -63,7 +64,7 @@ public class TreeWalkInterpreter : IInterpreter
             case TokenType.Or:
             {
                 var leftOr = Eval(binaryExpr.Left);
-                return !IsFalsy(leftOr) ? leftOr : Eval(binaryExpr.Right);
+                return IsTruthy(leftOr) ? leftOr : Eval(binaryExpr.Right);
             }
         }
 
@@ -123,6 +124,10 @@ public class TreeWalkInterpreter : IInterpreter
                 CheckOperandsAreNumbers(left, right);
                 return ShimmerValue.Bool(left.AsNumber >= right.AsNumber);
             }
+            case TokenType.Comma:
+            {
+                return right;
+            }
             default:
                 throw new InvalidOperationException($"Unsupported binary operator: '{op.Type}'");
         }
@@ -134,6 +139,9 @@ public class TreeWalkInterpreter : IInterpreter
         }
     }
 
+    private ShimmerValue EvalConditionalExpr(ConditionalExpr conditionalExpr) =>
+        IsTruthy(Eval(conditionalExpr.Condition)) ? Eval(conditionalExpr.ThenExpr) : Eval(conditionalExpr.ElseExpr);
+    
     private ShimmerValue EvalUnaryExpr(UnaryExpr unaryExpr)
     {
         var op = unaryExpr.Op;
@@ -152,6 +160,7 @@ public class TreeWalkInterpreter : IInterpreter
     }
 
     private static bool IsFalsy(ShimmerValue value) => value.IsNil || value is { IsBool: true, AsBool: false };
+    private static bool IsTruthy(ShimmerValue value) => !IsFalsy(value);
 
     private static RuntimeException RuntimeError(Token token, string message)
     {

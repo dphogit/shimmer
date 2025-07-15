@@ -13,7 +13,7 @@ public class ShimmerDriver(TextWriter? stdout = null, TextWriter? stderr = null)
     /// <returns>True if execution was successful, otherwise false.</returns>
     public bool Run(string source)
     {
-        var parser = new Parser(source);
+        var parser = new Parser(source, _stderr);
         var ast = parser.Parse();
 
         if (ast is null)

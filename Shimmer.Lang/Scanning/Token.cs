@@ -1,6 +1,6 @@
 ﻿namespace Shimmer.Scanning;
 
-public record struct Token
+public record Token
 {
     public required TokenType Type { get; init; }
     public required string Lexeme { get; init; }

@@ -22,6 +22,7 @@ public class ParserTests
     [InlineData("6 / 3 + 1", "((6 / 3) + 1)", TestDisplayName = "Operator Precedence")]
     [InlineData("true && true", "(true && true)", TestDisplayName = "Logical And")]
     [InlineData("true || true", "(true || true)", TestDisplayName = "Logical Or")]
+    [InlineData("1, 2", "(1 , 2)", TestDisplayName = "Comma")]
     public void Parse_BinaryOperator_ReturnsBinaryExpr(string expression, string expected)
     {
         // Arrange
@@ -84,11 +85,25 @@ public class ParserTests
     }
 
     [Theory]
+    [InlineData("true ? 1 : 2", "(true ? 1 : 2)")]
+    [InlineData("false ? 1 : true ? 2 : 3", "(false ? 1 : (true ? 2 : 3))")]
+    public void Parse_TernaryConditional_ReturnsConditionalExpr(string source, string expected)
+    {
+        // Arrange
+        var parser = new Parser(source);
+        
+        // Act
+        var expr = parser.Parse();
+        
+        // Assert
+        var ternaryExpr = Assert.IsType<ConditionalExpr>(expr);
+        Assert.Equal(expected, ternaryExpr.ToString());
+    }
+
+    [Theory]
     [InlineData("1 + *", "[Line 1, Col 5] Error at '*': Expected expression.", TestDisplayName = "Invalid Expression")]
     [InlineData("(1 + 2", "[Line 1, Col 6] Error at end: Expected ')' after expression.",
         TestDisplayName = "No Closing Parenthesis")]
-    // [InlineData("1 + 2)", "[Line 1, Col 6] Error at ')': Expected expression.",
-    //     TestDisplayName = "No Opening Parenthesis")] // TODO: Add when statements implemented
     public void Parse_InvalidSyntax_ReturnsNullAndReportsError(string source, string expected)
     {
         // Arrange

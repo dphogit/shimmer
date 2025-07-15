@@ -15,6 +15,9 @@ public class ScannerTests
     [InlineData("!", TokenType.Bang)]
     [InlineData("(", TokenType.LeftParen)]
     [InlineData(")", TokenType.RightParen)]
+    [InlineData(",", TokenType.Comma)]
+    [InlineData(":", TokenType.Colon)]
+    [InlineData("?", TokenType.Question)]
     [InlineData("<", TokenType.Less)]
     [InlineData("<=", TokenType.LessEqual)]
     [InlineData(">", TokenType.Greater)]
@@ -81,6 +84,42 @@ public class ScannerTests
         
         // Assert
         Assert.Equal(expectedToken, token);
+    }
+
+    [Theory]
+    [InlineData("// inline comment.\nmyVar", 2, 1, "myVar", TestDisplayName = "Inline Comment")]
+    [InlineData("/**/ myVar", 1, 6, "myVar", TestDisplayName = "Block Comment")]
+    [InlineData("/*\n*/\nmyVar", 3, 1, "myVar", TestDisplayName = "Multiple Line Block Comment")]
+    [InlineData("/*\n *\n */\nmyVar", 4, 1, "myVar", TestDisplayName = "Doc Style Comment")]
+    public void NextToken_Comment_SkipsAndReturnsTokenAtCorrectLocation(
+        string source, int line, int column, string identifier)
+    {
+        // Arrange
+        var scanner = new Scanner(source);
+        
+        _tokenFactory.SetLine(line);
+        _tokenFactory.SetColumn(column);
+        var expectedToken = _tokenFactory.Identifier(identifier);
+        
+        // Act
+        var token = scanner.NextToken();
+        
+        // Assert
+        Assert.Equal(expectedToken, token);
+    }
+
+    [Fact]
+    public void NextToken_BlockCommentUnterminated_ReturnsErrorToken()
+    {
+        // Arrange
+        var scanner = new Scanner("/* Unterminated comment ");
+        var errorToken = _tokenFactory.Error("Unterminated block comment.");
+        
+        // Act
+        var token = scanner.NextToken();
+        
+        // Assert
+        Assert.Equal(errorToken, token);
     }
 
     [Fact]

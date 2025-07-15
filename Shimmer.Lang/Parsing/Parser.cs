@@ -7,8 +7,8 @@ namespace Shimmer.Parsing;
 
 public class Parser
 {
-    private Token _current;
-    private Token _prev;
+    private Token _current = null!;
+    private Token _prev = null!;
 
     private class ParseException : Exception;
 
@@ -27,6 +27,10 @@ public class Parser
     {
     }
 
+    public Parser(string source, TextWriter errorWriter) : this(new Scanner(source), errorWriter)
+    {
+    }
+
     public Expr? Parse()
     {
         try
@@ -40,11 +44,27 @@ public class Parser
         }
     }
 
-    private Expr Expression() => LogicOr();
+    private Expr Expression() => Comma();
+
+    private Expr Comma() => LeftAssociativeBinaryOperator(Conditional, TokenType.Comma);
+
+    private Expr Conditional()
+    {
+        var expr = LogicOr(); // If parsing an actual conditional expression, then expr is the condition.
+
+        if (!Match(TokenType.Question))
+            return expr;
+        
+        var thenExpr = Expression();
+        Consume(TokenType.Colon, "Expect ':' after truthy branch of conditional.");
+        var elseExpr = Conditional();
+        
+        return new ConditionalExpr(expr, thenExpr, elseExpr);
+    }
 
     private Expr LogicOr() => LeftAssociativeBinaryOperator(LogicAnd, TokenType.Or);
-    
-    private  Expr LogicAnd() => LeftAssociativeBinaryOperator(Equality, TokenType.And);
+
+    private Expr LogicAnd() => LeftAssociativeBinaryOperator(Equality, TokenType.And);
 
     private Expr Equality() => LeftAssociativeBinaryOperator(Comparison, TokenType.EqualEqual, TokenType.BangEqual);
 
@@ -92,9 +112,9 @@ public class Parser
 
         while (Match(types))
         {
-            var @operator = _prev;
+            var op = _prev;
             var right = rule();
-            expr = new BinaryExpr(expr, @operator, right);
+            expr = new BinaryExpr(expr, op, right);
         }
 
         return expr;

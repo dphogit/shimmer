@@ -2,6 +2,7 @@
 
 public enum TokenType
 {
+    // Single Character
     Plus,
     Minus,
     Star,
@@ -9,22 +10,31 @@ public enum TokenType
     Equal,
     Bang,
     Less,
+    Greater,
+    LeftParen,
+    RightParen,
+    Comma,
+    Colon,
+    Question,
+    
+    // Two characters
     LessEqual,
     EqualEqual,
     BangEqual,
-    Greater,
     GreaterEqual,
-    LeftParen,
-    RightParen,
+    
+    // Literals
+    Number,
+    Identifier,
+    
+    // Keywords
     And,
     Or,
-    
-    Number,
     False,
     True,
     Nil,
-    Identifier,
-    
+
+    // Misc
     Error,
     Eof
 }

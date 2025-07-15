@@ -11,7 +11,10 @@ public class Scanner(string source) : IScanner
 
     public Token NextToken()
     {
-        SkipWhitespace();
+        var errorToken = SkipWhitespace();
+        if (errorToken is not null)
+            return errorToken;
+        
         _start = _cur;
         
         if (AtEnd())
@@ -33,6 +36,9 @@ public class Scanner(string source) : IScanner
             '/' => _tokenFactory.Slash(),
             '(' => _tokenFactory.LeftParen(),
             ')' => _tokenFactory.RightParen(),
+            ',' => _tokenFactory.Comma(),
+            ':'  => _tokenFactory.Colon(),
+            '?'  => _tokenFactory.Question(),
             '<' => Check('=', _tokenFactory.LessEqual(), _tokenFactory.Less()),
             '>' => Check('=', _tokenFactory.GreaterEqual(), _tokenFactory.Greater()),
             '=' => Check('=', _tokenFactory.EqualEqual(), _tokenFactory.Equal()),
@@ -84,27 +90,98 @@ public class Scanner(string source) : IScanner
         return source[_cur++];
     }
 
-    private void SkipWhitespace()
+    // Returns an error token if there is an error scanning whitespace, otherwise null (success)
+    private Token? SkipWhitespace()
     {
-        while (char.IsWhiteSpace(Peek()))
+        while (true)
         {
-            if (Peek() == '\n')
+            switch (Peek())
             {
-                Advance();
-                
-                _tokenFactory.SetLine(++_line);
-                
-                _column = 1;
-                _tokenFactory.SetColumn(1);
-                
-                continue;
-            }
+                case '\n':
+                {
+                    NextLine();
+                    continue;
+                }
+                case '/':
+                {
+                    var next = PeekNext();
 
-            Advance();
+                    if (next != '/' && next != '*')
+                        return null;
+
+                    if (next == '/')
+                    {
+                        InlineComment();
+                        continue;
+                    }
+                    
+                    var errorToken = BlockComment();
+                    if (errorToken is not null)
+                        return errorToken;
+                    
+                    continue;
+                }
+                case ' ':
+                case '\t':
+                case '\r':
+                    Advance();
+                    break;
+                default:
+                    return null;
+            }
         }
     }
 
+    private void NextLine()
+    {
+        Advance();  // Consume '\n'
+        SetLine(_line + 1);
+        SetColumn(1);
+    }
+
+    private void InlineComment()
+    {
+        // Consume '//'
+        Advance();
+        Advance();
+
+        while (Peek() != '\n' && !AtEnd())
+            Advance();
+    }
+
+    private Token? BlockComment()
+    {
+        var commentStartColumn = _column;
+        var commentStartLine = _line;
+        
+        // Consume the opening '/*'
+        Advance();
+        Advance();
+                    
+        while (!AtEnd() && !(Peek() == '*' && PeekNext() == '/'))
+        {
+            if (Peek() == '\n')
+                NextLine();
+            else
+                Advance();
+        }
+
+        if (AtEnd())
+        {
+            _tokenFactory.SetColumn(commentStartColumn);
+            _tokenFactory.SetLine(commentStartLine);
+            return _tokenFactory.Error("Unterminated block comment.");
+        }
+
+        // Consume the closing '*/'
+        Advance();
+        Advance();
+
+        return null;
+    }
+
     private char Peek() => AtEnd() ? '\0' : source[_cur];
+    private char PeekNext() => _cur + 1 >= source.Length ? '\0' : source[_cur + 1];
 
     private bool AtEnd() => _cur >= source.Length;
     
@@ -113,4 +190,16 @@ public class Scanner(string source) : IScanner
     private static bool IsAlphaNumeric(char c) => IsAlpha(c) || char.IsAsciiDigit(c);
     
     private string GetLexeme() => source.Substring(_start, _cur - _start);
+
+    private void SetLine(int line)
+    {
+        _line = line;
+        _tokenFactory.SetLine(line);
+    }
+    
+    private void SetColumn(int column)
+    {
+        _column = column;
+        _tokenFactory.SetColumn(column);
+    }
 }
