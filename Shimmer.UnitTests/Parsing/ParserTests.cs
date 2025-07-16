@@ -12,6 +12,7 @@ public class ParserTests
     [InlineData("1 - 2", "(1 - 2)", TestDisplayName = "Subtraction")]
     [InlineData("1 * 2", "(1 * 2)", TestDisplayName = "Multiplication")]
     [InlineData("1 / 2", "(1 / 2)", TestDisplayName = "Division")]
+    [InlineData("3 % 1", "(3 % 1)", TestDisplayName = "Remainder")]
     [InlineData("1 < 2", "(1 < 2)", TestDisplayName = "Less Than")]
     [InlineData("1 <= 2", "(1 <= 2)", TestDisplayName = "Less Than Equal")]
     [InlineData("1 > 2", "(1 > 2)", TestDisplayName = "Less Than")]
@@ -52,6 +53,22 @@ public class ParserTests
         // Assert
         var literalExpr = Assert.IsType<LiteralExpr>(expr);
         Assert.Equal(source, literalExpr.ToString());
+    }
+
+    [Theory]
+    [InlineData("\"string\"", "string")]
+    [InlineData("\"\"", "")]
+    public void Parse_String_ReturnsLiteralExpr(string source, string expected)
+    {
+        // Arrange
+        var parser = new Parser(source);
+        
+        // Act
+        var expr = parser.Parse();
+        
+        // Assert
+        var literalExpr = Assert.IsType<LiteralExpr>(expr);
+        Assert.Equal(expected, literalExpr.ToString());
     }
 
     [Theory]

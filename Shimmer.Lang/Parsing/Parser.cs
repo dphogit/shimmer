@@ -71,7 +71,7 @@ public class Parser
     private Expr Comparison() => LeftAssociativeBinaryOperator(Term, TokenType.Less, TokenType.LessEqual,
         TokenType.Greater, TokenType.GreaterEqual);
 
-    private Expr Term() => LeftAssociativeBinaryOperator(Factor, TokenType.Plus, TokenType.Minus);
+    private Expr Term() => LeftAssociativeBinaryOperator(Factor, TokenType.Plus, TokenType.Minus, TokenType.Percent);
 
     private Expr Factor() => LeftAssociativeBinaryOperator(Unary, TokenType.Star, TokenType.Slash);
 
@@ -81,6 +81,9 @@ public class Parser
     {
         if (Match(TokenType.Number))
             return Number();
+
+        if (Match(TokenType.String))
+            return String();
 
         if (Match(TokenType.LeftParen))
             return Grouping();
@@ -98,6 +101,8 @@ public class Parser
     }
 
     private LiteralExpr Number() => new(ShimmerValue.Number(double.Parse(_prev.Lexeme)));
+
+    private LiteralExpr String() => new(ShimmerValue.String(_prev.Lexeme[1..^1]));
 
     private GroupExpr Grouping()
     {

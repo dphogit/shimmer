@@ -27,6 +27,10 @@ public class ShimmerValue
     public static ShimmerValue Bool(bool b) => b ? True : False;
     public bool IsBool => Type == ShimmerType.Bool;
     public bool AsBool => IsBool ? (bool)Value! : throw new InvalidOperationException("Value is not a boolean.");
+    
+    public static ShimmerValue String(string s) => new(ShimmerType.String, s);
+    public bool IsString => Type == ShimmerType.String;
+    public string AsString => IsString ? (string)Value! : throw new InvalidOperationException("Value is not a string.");
 
     public bool IsNil => Type == ShimmerType.Nil;
     
@@ -36,6 +40,7 @@ public class ShimmerValue
             ShimmerType.Number => AsNumber.ToString(CultureInfo.InvariantCulture)!,
             ShimmerType.Bool => AsBool ? "true" : "false",
             ShimmerType.Nil => "nil",
+            ShimmerType.String => AsString,
             _ => throw new UnreachableException($"Unknown shimmer value type '{Type}'."),
         };
 
@@ -51,6 +56,7 @@ public class ShimmerValue
             ShimmerType.Number => Math.Abs(AsNumber - other.AsNumber) < tolerance,
             ShimmerType.Bool => AsBool == other.AsBool,
             ShimmerType.Nil => other.IsNil,
+            ShimmerType.String => AsString == other.AsString,
             _ => throw new UnreachableException($"Unknown shimmer value type '{Type}'."),
         };
     }

@@ -14,6 +14,7 @@ public class TreeWalkInterpreterTests
     [InlineData(3, "-", 2, "1", TestDisplayName = "Subtraction")]
     [InlineData(1, "*", 2, "2", TestDisplayName = "Multiplication")]
     [InlineData(4, "/", 2, "2", TestDisplayName = "Division")]
+    [InlineData(13, "%", 5, "3", TestDisplayName = "Remainder")]
     public void Interpret_Arithmetic_EvaluatesCorrectly(double a, string op, double b, string expected)
     {
         // Arrange
@@ -64,7 +65,7 @@ public class TreeWalkInterpreterTests
     }
     
     [Fact]
-    public void Interpret_DivideByZero_GivesRuntimeException()
+    public void Interpret_DivideByZero_GivesRuntimeError()
     {
         // Arrange
         var expr = new BinaryExpr(ExprFactory.Number(1), _tokenFactory.Slash(), ExprFactory.Number(0));
@@ -80,7 +81,7 @@ public class TreeWalkInterpreterTests
     }
 
     [Fact]
-    public void Interpret_NegationOperandNotNumber_GivesRuntimeException()
+    public void Interpret_NegationOperandNotNumber_GivesRuntimeError()
     {
         // Arrange
         var expr = new UnaryExpr(_tokenFactory.Minus(), LiteralExpr.True);
@@ -104,7 +105,7 @@ public class TreeWalkInterpreterTests
     [InlineData("<=")]
     [InlineData(">=")]
     [InlineData(">")]
-    public void Interpret_IllegalBinaryOperands_GivesRuntimeException(string op)
+    public void Interpret_IllegalBinaryOperands_GivesRuntimeError(string op)
     {
         // Arrange
         var opToken = _tokenFactory.Create(op);
@@ -118,5 +119,39 @@ public class TreeWalkInterpreterTests
         
         // Assert
         sw.AssertRuntimeError(1, $"Unsupported operand type(s) for '{opToken.Lexeme}': 'Number' and 'Bool'.");
+    }
+
+    [Fact]
+    public void Interpret_AddNumberAndString_GivesRuntimeError()
+    {
+        // Arrange
+        var plus = _tokenFactory.Create("+");
+        var expr = new BinaryExpr(ExprFactory.Number(1), plus, ExprFactory.String("1"));
+        
+        var sw = new StringWriter();
+        var interpreter = new TreeWalkInterpreter(errorWriter: sw);
+        
+        // Act
+        interpreter.Interpret(expr);
+        
+        // Assert
+        sw.AssertRuntimeError(1, $"Unsupported operand type(s) for '+': 'Number' and 'String'.");
+    }
+    
+    [Fact]
+    public void Interpret_AddStringAndNumber_GivesRuntimeError()
+    {
+        // Arrange
+        var plus = _tokenFactory.Create("+");
+        var expr = new BinaryExpr(ExprFactory.String("1"), plus, ExprFactory.Number(1));
+        
+        var sw = new StringWriter();
+        var interpreter = new TreeWalkInterpreter(errorWriter: sw);
+        
+        // Act
+        interpreter.Interpret(expr);
+        
+        // Assert
+        sw.AssertRuntimeError(1, $"Unsupported operand type(s) for '+': 'String' and 'Number'.");
     }
 }

@@ -22,6 +22,7 @@ public class TokenFactory(int line = 1, int column = 1)
             "-" => Minus(),
             "*" => Star(),
             "/" => Slash(),
+            "%" => Remainder(),
             "=" => Equal(),
             "(" => LeftParen(),
             ")" => RightParen(),
@@ -48,6 +49,7 @@ public class TokenFactory(int line = 1, int column = 1)
     public Token Minus() => Create("-", TokenType.Minus);
     public Token Star() => Create("*", TokenType.Star);
     public Token Slash() => Create("/", TokenType.Slash);
+    public Token Remainder() => Create("%", TokenType.Percent);
     public Token Equal() => Create("=", TokenType.Equal);
     public Token Bang() => Create("!", TokenType.Bang);
     public Token Less() => Create("<", TokenType.Less);
@@ -65,6 +67,7 @@ public class TokenFactory(int line = 1, int column = 1)
     public Token Question() => Create("?", TokenType.Question);
     public Token Number(string lexeme) => Create(lexeme, TokenType.Number);
     public Token Identifier(string lexeme) => Create(lexeme, TokenType.Identifier);
+    public Token String(string lexeme) => Create(lexeme, TokenType.String);
     public Token Nil() => Create("nil", TokenType.Nil);
     public Token Error(string message) => Create(message, TokenType.Error);
     public Token Eof() => Create(string.Empty, TokenType.Eof);

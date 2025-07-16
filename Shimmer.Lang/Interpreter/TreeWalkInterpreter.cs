@@ -74,6 +74,9 @@ public class TreeWalkInterpreter : IInterpreter
         {
             case TokenType.Plus:
             {
+                if (left.IsString && right.IsString)
+                    return ShimmerValue.String(left.AsString + right.AsString);
+                        
                 CheckOperandsAreNumbers(left, right);
                 return ShimmerValue.Number(left.AsNumber + right.AsNumber);
             }
@@ -95,6 +98,11 @@ public class TreeWalkInterpreter : IInterpreter
                     throw RuntimeError(op, "Division by 0.");
 
                 return ShimmerValue.Number(left.AsNumber / right.AsNumber);
+            }
+            case TokenType.Percent:
+            {
+                CheckOperandsAreNumbers(left, right);
+                return ShimmerValue.Number(left.AsNumber % right.AsNumber);
             }
             case TokenType.Less:
             {

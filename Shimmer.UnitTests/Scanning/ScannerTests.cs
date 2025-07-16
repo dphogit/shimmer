@@ -12,6 +12,7 @@ public class ScannerTests
     [InlineData("*", TokenType.Star)]
     [InlineData("/", TokenType.Slash)]
     [InlineData("=", TokenType.Equal)]
+    [InlineData("%", TokenType.Percent)]
     [InlineData("!", TokenType.Bang)]
     [InlineData("(", TokenType.LeftParen)]
     [InlineData(")", TokenType.RightParen)]
@@ -31,6 +32,7 @@ public class ScannerTests
     [InlineData("true", TokenType.True)]
     [InlineData("nil", TokenType.Nil)]
     [InlineData("myVariableName", TokenType.Identifier)]
+    [InlineData("\"stringLiteral\"", TokenType.String)]
     public void NextToken_ReturnsExpectedToken(string source, TokenType type)
     {
         // Arrange
@@ -136,6 +138,20 @@ public class ScannerTests
         Assert.Equal(errorToken, token);
     }
 
+    [Fact]
+    public void NextToken_StringUnterminated_ReturnsErrorToken()
+    {
+        // Arrange
+        var scanner = new Scanner("\"unterminated");
+        var errorToken = _tokenFactory.Error("Unterminated string.");
+        
+        // Act
+        var token = scanner.NextToken();
+        
+        // Assert
+        Assert.Equal(errorToken, token);
+    }
+            
     [Theory]
     [InlineData('|')]
     [InlineData('&')]

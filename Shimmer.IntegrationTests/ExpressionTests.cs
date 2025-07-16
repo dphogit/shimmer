@@ -8,18 +8,19 @@ public class ExpressionTests
     {
         var output = new StringWriter();
         var driver = new ShimmerDriver(output);
-        
+
         var success = driver.Run(expression);
-        
+
         Assert.True(success);
         output.AssertOutput(expected);
     }
-    
+
     [Theory]
     [InlineData("1 + 2", "3", TestDisplayName = "Addition")]
     [InlineData("3 - 2", "1", TestDisplayName = "Subtraction")]
     [InlineData("4 * 2", "8", TestDisplayName = "Multiplication")]
     [InlineData("4 / 2", "2", TestDisplayName = "Division")]
+    [InlineData("9 % 5", "4", TestDisplayName = "Remainder")]
     [InlineData("1 + 2 - 3", "0", TestDisplayName = "Left Associativity")]
     [InlineData("6 + 9 / 3", "9", TestDisplayName = "Operator Precedence")]
     [InlineData("(2 + 3) * 4", "20", TestDisplayName = "Grouping Parenthesis")]
@@ -79,5 +80,16 @@ public class ExpressionTests
     [InlineData("nil ? 1 : 2", "2", TestDisplayName = "Falsy Condition")]
     [InlineData("false ? 1 : true ? 2 : 3", "2", TestDisplayName = "Right Associativity")]
     public void Conditional_EvaluatesCorrectly(string expression, string expected) =>
+        RunExpressionTest(expression, expected);
+
+    [Theory]
+    [InlineData("\"foo\"", "foo", TestDisplayName = "Literal")]
+    [InlineData("\"\"", "", TestDisplayName = "Empty")]
+    [InlineData("\"foo \" + \"bar\"", "foo bar", TestDisplayName = "Concatenation")]
+    [InlineData("\"foo \" + \"bar \" + \"baz\"", "foo bar baz", TestDisplayName = "Multiple Concatenation")]
+    [InlineData("\"foo\" == \"foo\"", "true", TestDisplayName = "Equality")]
+    [InlineData("\"foo\" != \"bar\"", "true", TestDisplayName = "Inequality")]
+    [InlineData("\"Foo\" == \"foo\"", "false", TestDisplayName = "Case Sensitive Inequality")]
+    public void String_EvaluatesCorrectly(string expression, string expected) =>
         RunExpressionTest(expression, expected);
 }

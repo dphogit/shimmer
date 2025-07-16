@@ -7,6 +7,7 @@ public enum TokenType
     Minus,
     Star,
     Slash,
+    Percent,
     Equal,
     Bang,
     Less,
@@ -26,6 +27,7 @@ public enum TokenType
     // Literals
     Number,
     Identifier,
+    String,
     
     // Keywords
     And,

@@ -14,12 +14,12 @@ public class Scanner(string source) : IScanner
         var errorToken = SkipWhitespace();
         if (errorToken is not null)
             return errorToken;
-        
+
         _start = _cur;
-        
+
         if (AtEnd())
             return _tokenFactory.Eof();
-        
+
         var c = Advance();
 
         if (IsAlpha(c))
@@ -34,11 +34,13 @@ public class Scanner(string source) : IScanner
             '-' => _tokenFactory.Minus(),
             '*' => _tokenFactory.Star(),
             '/' => _tokenFactory.Slash(),
+            '%' => _tokenFactory.Remainder(),
             '(' => _tokenFactory.LeftParen(),
             ')' => _tokenFactory.RightParen(),
             ',' => _tokenFactory.Comma(),
-            ':'  => _tokenFactory.Colon(),
-            '?'  => _tokenFactory.Question(),
+            ':' => _tokenFactory.Colon(),
+            '?' => _tokenFactory.Question(),
+            '"' => String(),
             '<' => Check('=', _tokenFactory.LessEqual(), _tokenFactory.Less()),
             '>' => Check('=', _tokenFactory.GreaterEqual(), _tokenFactory.Greater()),
             '=' => Check('=', _tokenFactory.EqualEqual(), _tokenFactory.Equal()),
@@ -61,12 +63,39 @@ public class Scanner(string source) : IScanner
     private Token Number()
     {
         var startCol = _column - 1;
-        
+
         while (char.IsAsciiDigit(Peek()))
             Advance();
 
         _tokenFactory.SetColumn(startCol);
         return _tokenFactory.Number(GetLexeme());
+    }
+
+    private Token String()
+    {
+        var startCol = _column - 1;
+
+        while (Peek() != '"' && !AtEnd())
+        {
+            if (Peek() == '\n')
+                NextLine();
+            else
+                Advance();
+        }
+
+
+        if (AtEnd())
+        {
+            _tokenFactory.SetColumn(startCol);
+            return _tokenFactory.Error("Unterminated string.");
+        }
+
+        Advance();  // Consume closing "
+        
+        var lexeme = GetLexeme();
+        
+        _tokenFactory.SetColumn(startCol);
+        return _tokenFactory.String(lexeme);
     }
 
     private Token IdentifierOrKeyword()
@@ -79,7 +108,7 @@ public class Scanner(string source) : IScanner
         var lexeme = GetLexeme();
 
         var type = Keywords.GetTokenType(lexeme) ?? TokenType.Identifier;
-        
+
         _tokenFactory.SetColumn(startCol);
         return _tokenFactory.Create(lexeme, type);
     }
@@ -114,11 +143,11 @@ public class Scanner(string source) : IScanner
                         InlineComment();
                         continue;
                     }
-                    
+
                     var errorToken = BlockComment();
                     if (errorToken is not null)
                         return errorToken;
-                    
+
                     continue;
                 }
                 case ' ':
@@ -134,7 +163,7 @@ public class Scanner(string source) : IScanner
 
     private void NextLine()
     {
-        Advance();  // Consume '\n'
+        Advance(); // Consume '\n'
         SetLine(_line + 1);
         SetColumn(1);
     }
@@ -153,11 +182,11 @@ public class Scanner(string source) : IScanner
     {
         var commentStartColumn = _column;
         var commentStartLine = _line;
-        
+
         // Consume the opening '/*'
         Advance();
         Advance();
-                    
+
         while (!AtEnd() && !(Peek() == '*' && PeekNext() == '/'))
         {
             if (Peek() == '\n')
@@ -184,11 +213,11 @@ public class Scanner(string source) : IScanner
     private char PeekNext() => _cur + 1 >= source.Length ? '\0' : source[_cur + 1];
 
     private bool AtEnd() => _cur >= source.Length;
-    
-    private static bool IsAlpha(char c) => char.IsAsciiLetter(c) ||  c == '_';
+
+    private static bool IsAlpha(char c) => char.IsAsciiLetter(c) || c == '_';
 
     private static bool IsAlphaNumeric(char c) => IsAlpha(c) || char.IsAsciiDigit(c);
-    
+
     private string GetLexeme() => source.Substring(_start, _cur - _start);
 
     private void SetLine(int line)
@@ -196,7 +225,7 @@ public class Scanner(string source) : IScanner
         _line = line;
         _tokenFactory.SetLine(line);
     }
-    
+
     private void SetColumn(int column)
     {
         _column = column;
