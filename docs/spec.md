@@ -6,7 +6,7 @@ Shimmer is a dynamic-typed, scripting language following the C family of program
 
 Shimmer supports the built-in types: `number`, `bool`, `string`, `nil`.
 
-### Expression Evaluation
+### Expressions and Evaluation
 
 |  Operator   | Description                                                                                                                 |
 |:-----------:|:----------------------------------------------------------------------------------------------------------------------------|
@@ -80,6 +80,15 @@ DIGIT      = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
 ### Syntax Grammar
 
 ```ebnf
+program     = statement* EOF;
+
+statement   = printStmt
+            | exprStmt;
+            
+printStmt   = "print" expression ";" ;
+
+exprStmt    = expression ";" ;
+
 expression  = comma ;
 
 comma       = ternary ( "," ternary )* ;

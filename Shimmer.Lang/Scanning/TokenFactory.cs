@@ -37,6 +37,7 @@ public class TokenFactory(int line = 1, int column = 1)
             "||" => Or(),
             "," => Comma(),
             ":" => Colon(),
+            ";" => SemiColon(),
             "?" => Question(),
             "nil" => Nil(),
             _ => throw new ArgumentException($"Unknown lexeme to create token from: '{lexeme}'", nameof(lexeme))
@@ -64,6 +65,7 @@ public class TokenFactory(int line = 1, int column = 1)
     public Token Or() => Create("||", TokenType.Or);
     public Token Comma() => Create(",", TokenType.Comma);
     public Token Colon() => Create(":", TokenType.Colon);
+    public Token SemiColon() => Create(";", TokenType.SemiColon);
     public Token Question() => Create("?", TokenType.Question);
     public Token Number(string lexeme) => Create(lexeme, TokenType.Number);
     public Token Identifier(string lexeme) => Create(lexeme, TokenType.Identifier);

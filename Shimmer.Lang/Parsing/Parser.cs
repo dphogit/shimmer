@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using Shimmer.Parsing.Expressions;
+using Shimmer.Parsing.Statements;
 using Shimmer.Representation;
 using Shimmer.Scanning;
 
@@ -7,6 +8,8 @@ namespace Shimmer.Parsing;
 
 public class Parser
 {
+    public bool HadError { get; private set; } = false;
+    
     private Token _current = null!;
     private Token _prev = null!;
 
@@ -31,17 +34,45 @@ public class Parser
     {
     }
 
-    public Expr? Parse()
+    public IList<Stmt> Parse()
     {
-        try
+        List<Stmt> stmts = [];
+        
+        while (!Match(TokenType.Eof))
         {
-            return Expression();
+            try
+            {
+                stmts.Add(Statement());
+            }
+            catch (ParseException)
+            {
+                Synchronize();
+            }
         }
-        catch (ParseException)
-        {
-            // TODO: Implement synchronization for error recovery when adding statements.
-            return null;
-        }
+
+        return stmts;
+    }
+
+    private Stmt Statement()
+    {
+        if (Match(TokenType.Print))
+            return PrintStmt();
+
+        return ExprStmt();
+    }
+
+    private PrintStmt PrintStmt()
+    {
+        var expr = Expression();
+        Consume(TokenType.SemiColon, "Expect ';' after print expression.");
+        return new PrintStmt(expr);
+    }
+
+    private ExprStmt ExprStmt()
+    {
+        var expr = Expression();
+        Consume(TokenType.SemiColon, "Expect ';' after previous expression.");
+        return new ExprStmt(expr);
     }
 
     private Expr Expression() => Comma();
@@ -107,7 +138,7 @@ public class Parser
     private GroupExpr Grouping()
     {
         var innerExpr = Expression();
-        Consume(TokenType.RightParen, "Expected ')' after expression.");
+        Consume(TokenType.RightParen, "Expected ')' after previous expression.");
         return new GroupExpr(innerExpr);
     }
 
@@ -128,18 +159,12 @@ public class Parser
     private void Advance()
     {
         _prev = _current;
+        _current = _scanner.NextToken();
 
-        while (true)
+        if (_current.Type == TokenType.Error)
         {
-            _current = _scanner.NextToken();
-
-            if (_current.Type == TokenType.Error)
-            {
-                Error(_current, _current.Lexeme);
-                continue;
-            }
-
-            return;
+            Error(_current, _current.Lexeme);
+            Synchronize();
         }
     }
 
@@ -165,8 +190,8 @@ public class Parser
 
     private ParseException Error(Token token, string message)
     {
-        // TODO: Add Panic Mode Flag to not cascade errors - add during synchronization.
-
+        HadError = true;
+        
         StringBuilder sb = new($"[Line {token.Line}, Col {token.Column}] Error");
 
         var location = token.Type switch
@@ -180,5 +205,23 @@ public class Parser
 
         _errorWriter.Write(sb.ToString());
         return new ParseException();
+    }
+
+    // Skip tokens until a statement boundary is reached.
+    private void Synchronize()
+    {
+        while (_current.Type != TokenType.Eof)
+        {
+            // End of statement
+            if (_prev?.Type == TokenType.SemiColon)
+                return;
+
+            // Currently at the start of a new statement
+            if (Keywords.StatementStarters.Contains(_current.Type))
+                return;
+
+            _prev = _current;
+            _current = _scanner.NextToken();
+        }
     }
 }

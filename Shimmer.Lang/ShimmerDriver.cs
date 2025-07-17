@@ -16,7 +16,7 @@ public class ShimmerDriver(TextWriter? stdout = null, TextWriter? stderr = null)
         var parser = new Parser(source, _stderr);
         var ast = parser.Parse();
 
-        if (ast is null)
+        if (parser.HadError)
             return false;
 
         var interpreter = new TreeWalkInterpreter(_stdout, _stderr);

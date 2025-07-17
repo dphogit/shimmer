@@ -1,8 +1,8 @@
-﻿using Shimmer.Parsing.Expressions;
+﻿using Shimmer.Parsing.Statements;
 
 namespace Shimmer.Interpreter;
 
 public interface IInterpreter
 {
-    public void Interpret(Expr expr);
+    public void Interpret(IList<Stmt> stmts);
 }

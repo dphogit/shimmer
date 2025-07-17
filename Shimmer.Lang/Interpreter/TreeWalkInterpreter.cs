@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using Shimmer.Parsing.Expressions;
+using Shimmer.Parsing.Statements;
 using Shimmer.Representation;
 using Shimmer.Scanning;
 
@@ -25,17 +26,37 @@ public class TreeWalkInterpreter : IInterpreter
         _errorWriter = errorWriter ?? Console.Error;
     }
 
-    public void Interpret(Expr expr)
+    public void Interpret(IList<Stmt> stmts)
     {
         try
         {
-            var value = Eval(expr);
-            _outputWriter.WriteLine(value);
+            foreach (var stmt in stmts)
+                Execute(stmt);
         }
         catch (RuntimeException e)
         {
             _errorWriter.WriteLine(e.Message);
         }
+    }
+
+    private void Execute(Stmt stmt)
+    {
+        switch (stmt)
+        {
+            case ExprStmt exprStmt:
+                Eval(exprStmt.Expr);
+                break;
+            case PrintStmt printStmt:
+                ExecutePrintStmt(printStmt);
+                break;
+            default:
+                throw new UnreachableException($"Unknown statement type '{stmt.GetType().Name}.");
+        }
+    }
+
+    private void ExecutePrintStmt(PrintStmt printStmt)
+    {
+        _outputWriter.WriteLine(Eval(printStmt.Expr).ToString());
     }
 
     private ShimmerValue Eval(Expr expr) => expr switch
@@ -45,7 +66,7 @@ public class TreeWalkInterpreter : IInterpreter
         GroupExpr groupExpr => Eval(groupExpr.Expr),
         LiteralExpr literalExpr => literalExpr.Value,
         UnaryExpr unaryExpr => EvalUnaryExpr(unaryExpr),
-        _ => throw new UnreachableException($"Unknown expression type '{expr.GetType().Name}'")
+        _ => throw new UnreachableException($"Unknown expression type '{expr.GetType().Name}'.")
     };
 
     private ShimmerValue EvalBinaryExpr(BinaryExpr binaryExpr)

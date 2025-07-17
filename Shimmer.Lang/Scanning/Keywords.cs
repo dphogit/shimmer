@@ -9,9 +9,12 @@ public static class Keywords
         {
             ["false"] = TokenType.False,
             ["nil"] = TokenType.Nil,
+            ["print"] = TokenType.Print,
             ["true"] = TokenType.True,
         });
 
     public static TokenType? GetTokenType(string keyword) =>
         KeywordToType.TryGetValue(keyword, out var type) ? type : null;
+
+    public static TokenType[] StatementStarters => [TokenType.Print];
 }

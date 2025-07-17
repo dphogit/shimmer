@@ -16,6 +16,7 @@ public enum TokenType
     RightParen,
     Comma,
     Colon,
+    SemiColon,
     Question,
     
     // Two characters
@@ -30,6 +31,7 @@ public enum TokenType
     String,
     
     // Keywords
+    Print,
     And,
     Or,
     False,

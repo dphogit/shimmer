@@ -40,7 +40,7 @@ public class ShimmerValue
             ShimmerType.Number => AsNumber.ToString(CultureInfo.InvariantCulture)!,
             ShimmerType.Bool => AsBool ? "true" : "false",
             ShimmerType.Nil => "nil",
-            ShimmerType.String => AsString,
+            ShimmerType.String => $"\"{AsString}\"",
             _ => throw new UnreachableException($"Unknown shimmer value type '{Type}'."),
         };
 

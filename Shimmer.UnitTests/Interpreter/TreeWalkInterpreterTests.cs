@@ -1,5 +1,6 @@
 ﻿using Shimmer.Interpreter;
 using Shimmer.Parsing.Expressions;
+using Shimmer.Parsing.Statements;
 using Shimmer.Scanning;
 using Shimmer.UnitTests.Helpers;
 
@@ -19,12 +20,13 @@ public class TreeWalkInterpreterTests
     {
         // Arrange
         var expr = new BinaryExpr(ExprFactory.Number(a), _tokenFactory.Create(op), ExprFactory.Number(b));
+        var stmt = new PrintStmt(expr);
 
         var sw = new StringWriter();
         var interpreter = new TreeWalkInterpreter(sw);
 
         // Act
-        interpreter.Interpret(expr);
+        interpreter.Interpret([stmt]);
 
         // Assert
         sw.AssertOutput(expected);
@@ -53,28 +55,30 @@ public class TreeWalkInterpreterTests
     {
         // Arrange
         var expr = new BinaryExpr(ExprFactory.Number(a), _tokenFactory.Create(op), ExprFactory.Number(b));
+        var stmt = new PrintStmt(expr);
 
         var sw = new StringWriter();
         var interpreter = new TreeWalkInterpreter(sw);
 
         // Act
-        interpreter.Interpret(expr);
+        interpreter.Interpret([stmt]);
 
         // Assert
         sw.AssertOutput(expected);
     }
-    
+
     [Fact]
     public void Interpret_DivideByZero_GivesRuntimeError()
     {
         // Arrange
         var expr = new BinaryExpr(ExprFactory.Number(1), _tokenFactory.Slash(), ExprFactory.Number(0));
+        var stmt = new PrintStmt(expr);
 
         var sw = new StringWriter();
         var interpreter = new TreeWalkInterpreter(errorWriter: sw);
 
         // Act
-        interpreter.Interpret(expr);
+        interpreter.Interpret([stmt]);
 
         // Assert
         sw.AssertRuntimeError(1, "Division by 0.");
@@ -85,13 +89,14 @@ public class TreeWalkInterpreterTests
     {
         // Arrange
         var expr = new UnaryExpr(_tokenFactory.Minus(), LiteralExpr.True);
-        
+        var stmt = new PrintStmt(expr);
+
         var sw = new StringWriter();
         var interpreter = new TreeWalkInterpreter(errorWriter: sw);
-        
+
         // Act
-        interpreter.Interpret(expr);
-        
+        interpreter.Interpret([stmt]);
+
         // Assert
         sw.AssertRuntimeError(1, $"Bad operand type for unary '-': 'Bool'.");
     }
@@ -110,13 +115,14 @@ public class TreeWalkInterpreterTests
         // Arrange
         var opToken = _tokenFactory.Create(op);
         var expr = new BinaryExpr(ExprFactory.Number(1), opToken, LiteralExpr.True);
-        
+        var stmt = new PrintStmt(expr);
+
         var sw = new StringWriter();
         var interpreter = new TreeWalkInterpreter(errorWriter: sw);
-        
+
         // Act
-        interpreter.Interpret(expr);
-        
+        interpreter.Interpret([stmt]);
+
         // Assert
         sw.AssertRuntimeError(1, $"Unsupported operand type(s) for '{opToken.Lexeme}': 'Number' and 'Bool'.");
     }
@@ -127,30 +133,32 @@ public class TreeWalkInterpreterTests
         // Arrange
         var plus = _tokenFactory.Create("+");
         var expr = new BinaryExpr(ExprFactory.Number(1), plus, ExprFactory.String("1"));
-        
+        var stmt = new PrintStmt(expr);
+
         var sw = new StringWriter();
         var interpreter = new TreeWalkInterpreter(errorWriter: sw);
-        
+
         // Act
-        interpreter.Interpret(expr);
-        
+        interpreter.Interpret([stmt]);
+
         // Assert
         sw.AssertRuntimeError(1, $"Unsupported operand type(s) for '+': 'Number' and 'String'.");
     }
-    
+
     [Fact]
     public void Interpret_AddStringAndNumber_GivesRuntimeError()
     {
         // Arrange
         var plus = _tokenFactory.Create("+");
         var expr = new BinaryExpr(ExprFactory.String("1"), plus, ExprFactory.Number(1));
-        
+        var stmt = new PrintStmt(expr);
+
         var sw = new StringWriter();
         var interpreter = new TreeWalkInterpreter(errorWriter: sw);
-        
+
         // Act
-        interpreter.Interpret(expr);
-        
+        interpreter.Interpret([stmt]);
+
         // Assert
         sw.AssertRuntimeError(1, $"Unsupported operand type(s) for '+': 'String' and 'Number'.");
     }

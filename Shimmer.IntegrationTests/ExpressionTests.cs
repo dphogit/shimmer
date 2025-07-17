@@ -6,11 +6,16 @@ public class ExpressionTests
 {
     private static void RunExpressionTest(string expression, string expected)
     {
+        // Arrange
+        var source = $"print {expression};";
+        
         var output = new StringWriter();
         var driver = new ShimmerDriver(output);
 
-        var success = driver.Run(expression);
+        // Act
+        var success = driver.Run(source);
 
+        // Assert
         Assert.True(success);
         output.AssertOutput(expected);
     }
@@ -83,10 +88,10 @@ public class ExpressionTests
         RunExpressionTest(expression, expected);
 
     [Theory]
-    [InlineData("\"foo\"", "foo", TestDisplayName = "Literal")]
-    [InlineData("\"\"", "", TestDisplayName = "Empty")]
-    [InlineData("\"foo \" + \"bar\"", "foo bar", TestDisplayName = "Concatenation")]
-    [InlineData("\"foo \" + \"bar \" + \"baz\"", "foo bar baz", TestDisplayName = "Multiple Concatenation")]
+    [InlineData("\"foo\"", "\"foo\"", TestDisplayName = "Literal")]
+    [InlineData("\"\"", "\"\"", TestDisplayName = "Empty")]
+    [InlineData("\"foo \" + \"bar\"", "\"foo bar\"", TestDisplayName = "Concatenation")]
+    [InlineData("\"foo \" + \"bar \" + \"baz\"", "\"foo bar baz\"", TestDisplayName = "Multiple Concatenation")]
     [InlineData("\"foo\" == \"foo\"", "true", TestDisplayName = "Equality")]
     [InlineData("\"foo\" != \"bar\"", "true", TestDisplayName = "Inequality")]
     [InlineData("\"Foo\" == \"foo\"", "false", TestDisplayName = "Case Sensitive Inequality")]
