@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using Shimmer.Parsing.Expressions;
+﻿using Shimmer.Parsing.Expressions;
 using Shimmer.Parsing.Statements;
 using Shimmer.Representation;
 using Shimmer.Scanning;
@@ -8,8 +7,8 @@ namespace Shimmer.Interpreter;
 
 public class TreeWalkInterpreter : IInterpreter
 {
-    private class RuntimeException(string message) : Exception(message);
-
+    private Environment _environment = new();
+    
     private readonly TextWriter _outputWriter;
     private readonly TextWriter _errorWriter;
 
@@ -33,7 +32,7 @@ public class TreeWalkInterpreter : IInterpreter
             foreach (var stmt in stmts)
                 Execute(stmt);
         }
-        catch (RuntimeException e)
+        catch (RuntimeError e)
         {
             _errorWriter.WriteLine(e.Message);
         }
@@ -43,31 +42,63 @@ public class TreeWalkInterpreter : IInterpreter
     {
         switch (stmt)
         {
+            case BlockStmt blockStmt:
+                ExecuteBlockStmt(blockStmt, new Environment(_environment));
+                break;
             case ExprStmt exprStmt:
                 Eval(exprStmt.Expr);
                 break;
             case PrintStmt printStmt:
                 ExecutePrintStmt(printStmt);
                 break;
+            case VarStmt varStmt:
+                ExecuteVarStmt(varStmt);
+                break;
             default:
-                throw new UnreachableException($"Unknown statement type '{stmt.GetType().Name}.");
+                throw new ArgumentException($"Cannot execute statement type '{stmt.GetType().Name}.");
         }
     }
 
-    private void ExecutePrintStmt(PrintStmt printStmt)
+    private void ExecuteBlockStmt(BlockStmt blockStmt, Environment environment)
     {
-        _outputWriter.WriteLine(Eval(printStmt.Expr).ToString());
+        // Save reference to the previous environment so we can restore it once entering this block's scope.
+        var previous = _environment;
+
+        try
+        {
+            _environment = environment;
+
+            foreach (var stmt in blockStmt.Statements)
+                Execute(stmt);
+        }
+        finally
+        {
+            _environment = previous;
+        }
     }
+
+    private void ExecutePrintStmt(PrintStmt printStmt) => _outputWriter.WriteLine(Eval(printStmt.Expr).ToString());
+
+    private void ExecuteVarStmt(VarStmt varStmt) => _environment.Define(varStmt.Name, Eval(varStmt.Initializer));
 
     private ShimmerValue Eval(Expr expr) => expr switch
     {
+        AssignExpr assignExpr => EvalAssignExpr(assignExpr),
         BinaryExpr binaryExpr => EvalBinaryExpr(binaryExpr),
         ConditionalExpr conditionalExpr => EvalConditionalExpr(conditionalExpr),
         GroupExpr groupExpr => Eval(groupExpr.Expr),
         LiteralExpr literalExpr => literalExpr.Value,
         UnaryExpr unaryExpr => EvalUnaryExpr(unaryExpr),
-        _ => throw new UnreachableException($"Unknown expression type '{expr.GetType().Name}'.")
+        VarExpr varExpr => EvalVarExpr(varExpr),
+        _ => throw new ArgumentException($"Cannot evaluate expression type '{expr.GetType().Name}'.")
     };
+
+    private ShimmerValue EvalAssignExpr(AssignExpr assignExpr)
+    {
+        var value = Eval(assignExpr.Value);
+        _environment.Assign(assignExpr.Name, value);
+        return value;
+    }
 
     private ShimmerValue EvalBinaryExpr(BinaryExpr binaryExpr)
     {
@@ -116,7 +147,7 @@ public class TreeWalkInterpreter : IInterpreter
                 CheckOperandsAreNumbers(left, right);
 
                 if (right.AsNumber == 0)
-                    throw RuntimeError(op, "Division by 0.");
+                    throw RuntimeError.Create(op, "Division by 0.");
 
                 return ShimmerValue.Number(left.AsNumber / right.AsNumber);
             }
@@ -188,18 +219,14 @@ public class TreeWalkInterpreter : IInterpreter
         };
     }
 
+    private ShimmerValue EvalVarExpr(VarExpr varExpr) => _environment.Get(varExpr.Name);
+
     private static bool IsFalsy(ShimmerValue value) => value.IsNil || value is { IsBool: true, AsBool: false };
     private static bool IsTruthy(ShimmerValue value) => !IsFalsy(value);
 
-    private static RuntimeException RuntimeError(Token token, string message)
-    {
-        var error = $"[Line {token.Line}] Runtime error: {message}";
-        return new RuntimeException(error);
-    }
+    private static RuntimeError UnsupportedOperandTypeUnary(Token op, ShimmerType argType) =>
+        RuntimeError.Create(op, $"Bad operand type for unary '{op.Lexeme}': '{argType}'.");
 
-    private static RuntimeException UnsupportedOperandTypeUnary(Token op, ShimmerType argType) =>
-        RuntimeError(op, $"Bad operand type for unary '{op.Lexeme}': '{argType}'.");
-
-    private static RuntimeException UnsupportedOperandTypeBinary(Token op, ShimmerType left, ShimmerType right) =>
-        RuntimeError(op, $"Unsupported operand type(s) for '{op.Lexeme}': '{left}' and '{right}'.");
+    private static RuntimeError UnsupportedOperandTypeBinary(Token op, ShimmerType left, ShimmerType right) =>
+        RuntimeError.Create(op, $"Unsupported operand type(s) for '{op.Lexeme}': '{left}' and '{right}'.");
 }

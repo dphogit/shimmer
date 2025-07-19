@@ -162,4 +162,39 @@ public class TreeWalkInterpreterTests
         // Assert
         sw.AssertRuntimeError(1, $"Unsupported operand type(s) for '+': 'String' and 'Number'.");
     }
+
+    [Fact]
+    public void Interpret_VariableWithSameNameDefinedInSameScope_GivesRuntimeError()
+    {
+        // Arrange
+        var name = _tokenFactory.Identifier("x");
+        var varDecl1 = new VarStmt(name);
+        var varDecl2 = new VarStmt(name);
+        
+        var sw = new StringWriter();
+        var interpreter = new TreeWalkInterpreter(errorWriter: sw);
+        
+        // Act
+        interpreter.Interpret([varDecl1, varDecl2]);
+        
+        // Assert
+        sw.AssertRuntimeError(1, $"Variable '{name.Lexeme}' already defined in this scope.");
+    }
+
+    [Fact]
+    public void Interpret_UndefinedVariable_GivesRuntimeError()
+    {
+        // Arrange
+        var name = _tokenFactory.Identifier("x");
+        var stmt = new ExprStmt(new VarExpr(name));
+        
+        var sw = new StringWriter();
+        var interpreter = new TreeWalkInterpreter(errorWriter: sw);
+        
+        // Act
+        interpreter.Interpret([stmt]);
+        
+        // Assert
+        sw.AssertRuntimeError(1, $"Undefined variable '{name.Lexeme}'.");
+    }
 }

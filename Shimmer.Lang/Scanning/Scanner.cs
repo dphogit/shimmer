@@ -41,6 +41,8 @@ public class Scanner(string source) : IScanner
             ':' => _tokenFactory.Colon(),
             ';' => _tokenFactory.SemiColon(),
             '?' => _tokenFactory.Question(),
+            '{' => _tokenFactory.LeftBrace(),
+            '}' => _tokenFactory.RightBrace(),
             '"' => String(),
             '<' => Check('=', _tokenFactory.LessEqual(), _tokenFactory.Less()),
             '>' => Check('=', _tokenFactory.GreaterEqual(), _tokenFactory.Greater()),

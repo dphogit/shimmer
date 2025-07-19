@@ -18,6 +18,8 @@ public enum TokenType
     Colon,
     SemiColon,
     Question,
+    LeftBrace,
+    RightBrace,
     
     // Two characters
     LessEqual,
@@ -36,6 +38,7 @@ public enum TokenType
     Or,
     False,
     True,
+    Var,
     Nil,
 
     // Misc

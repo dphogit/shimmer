@@ -67,6 +67,8 @@ public class TokenFactory(int line = 1, int column = 1)
     public Token Colon() => Create(":", TokenType.Colon);
     public Token SemiColon() => Create(";", TokenType.SemiColon);
     public Token Question() => Create("?", TokenType.Question);
+    public Token LeftBrace() => Create("{", TokenType.LeftBrace);
+    public Token RightBrace() => Create("}", TokenType.RightBrace);
     public Token Number(string lexeme) => Create(lexeme, TokenType.Number);
     public Token Identifier(string lexeme) => Create(lexeme, TokenType.Identifier);
     public Token String(string lexeme) => Create(lexeme, TokenType.String);

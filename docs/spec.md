@@ -27,6 +27,7 @@ Shimmer supports the built-in types: `number`, `bool`, `string`, `nil`.
 |    `-A`     | Unary negation. Gives runtime error if `A` is not a number.                                                                 |
 |  `A, B, C`  | Comma operator, evaluates to `C`. Allows for comma-separated series of expressions where a single expression is expected.   |
 | `A ? B : C` | Ternary (conditional), if `A` is truthy then evaluate to `B` otherwise `C`.                                                 |
+|   `A = B`   | Assignment. Assign the value `B` to variable `A`.                                                                           |
 
 In conditional contexts (e.g. `if` and `while`), the truthiness of the condition is evaluated, following Ruby's
 definition of truthy and falsy values. The values of `false` and `nil` are considered falsy, and all other values are
@@ -37,20 +38,48 @@ implied by the [grammar](#grammar) section below where deeper expression-related
 
 | Precedence | Operator          | Description                                                              | Associativity |
 |:----------:|:------------------|--------------------------------------------------------------------------|:-------------:|
-|   **1**    | `-`               | Unary negation                                                           |     Right     |     
+|   **1**    | `-`               | Unary negation                                                           | Right to left |     
 |            | `!`               | Logical `NOT`                                                            |               |
-|   **2**    | `*` `/`           | Multiplication and division                                              |     Left      |
-|   **3**    | `+` `-` `%`       | Addition, subtraction and remainder                                      |     Left      |
-|   **4**    | `<` `<=` `>` `>=` | Relational: Less than, less than equal, greater than, greater than equal |     Left      |
-|   **5**    | `!=` `==`         | Relational: Equal, and not equal                                         |     Left      |
-|   **6**    | `&&`              | Logical `AND`                                                            |     Left      |
-|   **7**    | `\|\|`            | Logical `OR`                                                             |     Left      |
-|   **8**    | `? :`             | Ternary conditional                                                      |     Right     |
-|   **9**    | `,`               | Comma operator                                                           |     Left      |
+|   **2**    | `*` `/`           | Multiplication and division                                              | Left to right |
+|   **3**    | `+` `-` `%`       | Addition, subtraction and remainder                                      | Left to right |
+|   **4**    | `<` `<=` `>` `>=` | Relational: Less than, less than equal, greater than, greater than equal | Left to right |
+|   **5**    | `!=` `==`         | Relational: Equal, and not equal                                         | Left to right |
+|   **6**    | `&&`              | Logical `AND`                                                            | Left to right |
+|   **7**    | `\|\|`            | Logical `OR`                                                             | Left to right |
+|   **8**    | `? :`             | Ternary conditional                                                      | Right to left |
+|   **9**    | `=`               | Assignment                                                               | Right to left |
+|   **10**   | `,`               | Comma operator                                                           | Left to right |
 
 ### Comments
 
 Shimmer supports both `//` inline comments and `/**/` block comments. Nested block comments are not supported.
+
+### Variables
+
+When declaring variables, they can be optionally given an initializer. If omitted, the variable is implicitly
+initialized with `nil`.
+
+```shimmer
+var x;
+print x;  // nil
+```
+
+Variables cannot be redefined if the variable name has already been defined in the same scope. 
+
+```shimmer
+var x = 10;
+var x = 20; // Runtime error: "Variable 'x' already defined in this scope."
+```
+
+Though, a variable can *shadow* an existing variable with the same name from an outer scope.
+
+```shimmer
+var x = "global";
+{
+  var x = "inner";
+  print x; // "inner"
+}
+```
 
 ## Grammar
 
@@ -80,18 +109,29 @@ DIGIT      = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
 ### Syntax Grammar
 
 ```ebnf
-program     = statement* EOF;
+program     = declaration* EOF;
+
+declaration = varDecl
+            | statement ;
+            
+varDecl     = "var" IDENTIFIER ( "=" expression )? ";" ;
 
 statement   = printStmt
-            | exprStmt;
+            | exprStmt 
+            | block ;
             
 printStmt   = "print" expression ";" ;
 
 exprStmt    = expression ";" ;
 
+block       = "{" declaration* "}" ;
+
 expression  = comma ;
 
-comma       = ternary ( "," ternary )* ;
+comma       = assignment ( "," assignment )* ;
+
+assignment  = IDENTIFIER "=" assignment
+            | conditional ;
 
 conditional = logic_or ( "?" expression ":" conditional )? ;
 

@@ -3,10 +3,19 @@ using Shimmer.Parsing;
 
 namespace Shimmer;
 
-public class ShimmerDriver(TextWriter? stdout = null, TextWriter? stderr = null)
+public class ShimmerDriver
 {
-    private readonly TextWriter _stdout = stdout ?? Console.Out;
-    private readonly TextWriter _stderr = stderr ?? Console.Error;
+    private readonly TextWriter _stderr;
+
+    private readonly IInterpreter _interpreter;
+
+    public ShimmerDriver(TextWriter? stdout = null, TextWriter? stderr = null)
+    {
+        stdout ??= Console.Out;
+        _stderr = stderr ?? Console.Error;
+        
+        _interpreter = new TreeWalkInterpreter(stdout, _stderr);
+    }
 
     /// <summary>Driver execution of the given <paramref name="source"/>.</summary>
     /// <param name="source">Source code to execute.</param>
@@ -19,8 +28,7 @@ public class ShimmerDriver(TextWriter? stdout = null, TextWriter? stderr = null)
         if (parser.HadError)
             return false;
 
-        var interpreter = new TreeWalkInterpreter(_stdout, _stderr);
-        interpreter.Interpret(ast);
+        _interpreter.Interpret(ast);
 
         return true;
     }

@@ -11,6 +11,7 @@ public static class Keywords
             ["nil"] = TokenType.Nil,
             ["print"] = TokenType.Print,
             ["true"] = TokenType.True,
+            ["var"] = TokenType.Var,
         });
 
     public static TokenType? GetTokenType(string keyword) =>

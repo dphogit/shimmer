@@ -35,6 +35,8 @@ public class ParserTests
     [InlineData("(1 + 2);", "(1 + 2)", TestDisplayName = "Grouping")]
     [InlineData("true ? 1 : 2;", "(true ? 1 : 2)", TestDisplayName = "Conditional")]
     [InlineData("false ? 1 : true ? 2 : 3;", "(false ? 1 : (true ? 2 : 3))", TestDisplayName = "Nested Conditional")]
+    [InlineData("x;", "x", TestDisplayName = "Variable")]
+    [InlineData("x = 2;", "(x = 2)", TestDisplayName = "Assignment")]
     public void Parse_ExpressionStatements_ReturnsExprStmt(string expression, string expected)
     {
         // Arrange
@@ -70,11 +72,47 @@ public class ParserTests
     }
 
     [Theory]
+    [InlineData("var x;", "(var x = nil)", TestDisplayName = "No Initializer")]
+    [InlineData("var x = 3;", "(var x = 3)", TestDisplayName = "Initializer")]
+    [InlineData("var x = 9 * 8;", "(var x = (9 * 8))", TestDisplayName = "Expression Initializer")]
+    public void Parse_VariableDeclaration_ReturnsVarStmt(string expression, string expected)
+    {
+        // Arrange
+        var parser = new Parser(expression);
+        
+        // Act
+        var stmts = parser.Parse();
+        
+        // Assert
+        Assert.False(parser.HadError);
+        Assert.Single(stmts);
+        var varStmt = Assert.IsType<VarStmt>(stmts[0]);
+        Assert.Equal(expected, varStmt.ToString());
+    }
+
+    [Fact]
+    public void Parse_BlockStatement_ReturnsBlockStmt()
+    {
+        // Arrange
+        var parser = new Parser("{ var x = 1 + 2; }");
+        
+        // Act
+        var stmts = parser.Parse();
+        
+        // Assert
+        Assert.False(parser.HadError);
+        Assert.Single(stmts);
+        var blockStmt = Assert.IsType<BlockStmt>(stmts[0]);
+        Assert.Equal("{ (var x = (1 + 2)) }", blockStmt.ToString());
+    }
+    
+    [Theory]
     [InlineData("1 + *", "[Line 1, Col 5] Error at '*': Expected expression.", TestDisplayName = "Invalid Expression")]
     [InlineData("(1 + 2", "[Line 1, Col 6] Error at end: Expected ')' after previous expression.",
         TestDisplayName = "No Closing Parenthesis")]
     [InlineData("1 + 2)", "[Line 1, Col 6] Error at ')': Expect ';' after previous expression.", TestDisplayName = "No Opening Parenthesis")]
     [InlineData("$", "[Line 1, Col 1] Error: Unexpected character '$'.", TestDisplayName = "Unexpected Character")]
+    [InlineData("{ 1;", "[Line 1, Col 4] Error at end: Expect '}' at end of block.")]
     public void Parse_InvalidSyntax_ReportsError(string source, string expected)
     {
         // Arrange

@@ -7,6 +7,7 @@ public class ScannerTests
     private readonly TokenFactory _tokenFactory = new();
 
     [Theory]
+
     // Single character
     [InlineData("+", TokenType.Plus)]
     [InlineData("-", TokenType.Minus)]
@@ -23,6 +24,8 @@ public class ScannerTests
     [InlineData(":", TokenType.Colon)]
     [InlineData(";", TokenType.SemiColon)]
     [InlineData("?", TokenType.Question)]
+    [InlineData("{", TokenType.LeftBrace)]
+    [InlineData("}", TokenType.RightBrace)]
 
     // Two characters
     [InlineData("<=", TokenType.LessEqual)]
@@ -40,6 +43,7 @@ public class ScannerTests
     [InlineData("false", TokenType.False)]
     [InlineData("true", TokenType.True)]
     [InlineData("nil", TokenType.Nil)]
+    [InlineData("var", TokenType.Var)]
     [InlineData("", TokenType.Eof)]
     public void NextToken_ReturnsExpectedToken(string source, TokenType type)
     {

@@ -36,13 +36,13 @@ public class Parser
 
     public IList<Stmt> Parse()
     {
-        List<Stmt> stmts = [];
+        List<Stmt> program = [];
         
         while (!Match(TokenType.Eof))
         {
             try
             {
-                stmts.Add(Statement());
+                program.Add(Declaration());
             }
             catch (ParseException)
             {
@@ -50,13 +50,32 @@ public class Parser
             }
         }
 
-        return stmts;
+        return program;
+    }
+
+    private Stmt Declaration()
+    {
+        if (Match(TokenType.Var))
+            return VarDecl();
+        
+        return Statement();
+    }
+
+    private VarStmt VarDecl()
+    {
+        var name = Consume(TokenType.Identifier, "Expected variable name.");
+        var initializer = Match(TokenType.Equal) ? Expression() : null;
+        Consume(TokenType.SemiColon, "Expect ';' after variable declaration.");
+        return new VarStmt(name, initializer);
     }
 
     private Stmt Statement()
     {
         if (Match(TokenType.Print))
             return PrintStmt();
+
+        if (Match(TokenType.LeftBrace))
+            return Block();
 
         return ExprStmt();
     }
@@ -68,6 +87,17 @@ public class Parser
         return new PrintStmt(expr);
     }
 
+    private BlockStmt Block()
+    {
+        List<Stmt> statements = [];
+
+        while (!Check(TokenType.RightBrace) && !Check(TokenType.Eof))
+            statements.Add(Declaration());
+
+        Consume(TokenType.RightBrace, "Expect '}' at end of block.");
+        return new BlockStmt(statements);
+    }
+
     private ExprStmt ExprStmt()
     {
         var expr = Expression();
@@ -76,8 +106,27 @@ public class Parser
     }
 
     private Expr Expression() => Comma();
+    
+    private Expr Comma() => LeftAssociativeBinaryOperator(Assignment, TokenType.Comma);
 
-    private Expr Comma() => LeftAssociativeBinaryOperator(Conditional, TokenType.Comma);
+    private Expr Assignment()
+    {
+        var expr = Conditional();   // If parsing an actual assignment, this is expected be the target (VarExpr).
+
+        if (!Check(TokenType.Equal))
+            return expr;
+        
+        var assignmentTarget = _prev;
+            
+        Advance();  // Consume '='
+
+        var value = Assignment();
+
+        if (expr is not VarExpr varExpr)
+            throw Error(assignmentTarget, "Invalid assignment target.");
+
+        return new AssignExpr(varExpr.Name, value);
+    }
 
     private Expr Conditional()
     {
@@ -111,10 +160,10 @@ public class Parser
     private Expr Primary()
     {
         if (Match(TokenType.Number))
-            return Number();
+            return new LiteralExpr(ShimmerValue.Number(double.Parse(_prev.Lexeme)));
 
         if (Match(TokenType.String))
-            return String();
+            return new LiteralExpr(ShimmerValue.String(_prev.Lexeme[1..^1]));
 
         if (Match(TokenType.LeftParen))
             return Grouping();
@@ -128,12 +177,11 @@ public class Parser
         if (Match(TokenType.Nil))
             return LiteralExpr.Nil;
 
+        if (Match(TokenType.Identifier))
+            return new VarExpr(_prev);
+
         throw Error(_current, "Expected expression.");
     }
-
-    private LiteralExpr Number() => new(ShimmerValue.Number(double.Parse(_prev.Lexeme)));
-
-    private LiteralExpr String() => new(ShimmerValue.String(_prev.Lexeme[1..^1]));
 
     private GroupExpr Grouping()
     {
@@ -177,15 +225,17 @@ public class Parser
         return true;
     }
 
-    private void Consume(TokenType type, string message)
-    {
-        if (_current.Type == type)
-        {
-            Advance();
-            return;
-        }
+    private bool Check(params TokenType[] types) => types.Contains(_current.Type);
 
-        throw Error(_current, message);
+    private Token Consume(TokenType type, string message)
+    {
+        var token = _current;
+        
+        if (token.Type != type)
+            throw Error(token, message);
+        
+        Advance();
+        return token;
     }
 
     private ParseException Error(Token token, string message)
@@ -213,7 +263,7 @@ public class Parser
         while (_current.Type != TokenType.Eof)
         {
             // End of statement
-            if (_prev?.Type == TokenType.SemiColon)
+            if (_prev?.Type is TokenType.SemiColon or TokenType.RightBrace)
                 return;
 
             // Currently at the start of a new statement
