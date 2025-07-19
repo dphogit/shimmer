@@ -13,6 +13,8 @@ public class Parser
     private Token _current = null!;
     private Token _prev = null!;
 
+    private int _loopDepth = 0;
+
     private class ParseException : Exception;
 
     private readonly IScanner _scanner;
@@ -37,7 +39,7 @@ public class Parser
     public IList<Stmt> Parse()
     {
         List<Stmt> program = [];
-        
+
         while (!Match(TokenType.Eof))
         {
             try
@@ -77,6 +79,24 @@ public class Parser
         if (Match(TokenType.LeftBrace))
             return Block();
 
+        if (Match(TokenType.If))
+            return IfStmt();
+
+        if (Match(TokenType.While))
+            return WhileStmt();
+
+        if (Match(TokenType.For))
+            return ForStmt();
+
+        if (Match(TokenType.Do))
+            return DoWhileStmt();
+
+        if (Match(TokenType.Break))
+            return BreakStmt();
+
+        if (Match(TokenType.Continue))
+            return ContinueStmt();
+
         return ExprStmt();
     }
 
@@ -98,6 +118,130 @@ public class Parser
         return new BlockStmt(statements);
     }
 
+    private IfStmt IfStmt()
+    {
+        Consume(TokenType.LeftParen, "Expect '(' after 'if'.");
+        var condition = Expression();
+        Consume(TokenType.RightParen, "Expect ')' after 'if' condition.");
+
+        var thenBranch = Statement();
+        var elseBranch = Match(TokenType.Else) ? Statement() : null;
+
+        return new IfStmt(condition, thenBranch, elseBranch);
+    }
+
+    private WhileStmt WhileStmt()
+    {
+        try
+        {
+            _loopDepth++;
+
+            Consume(TokenType.LeftParen, "Expect '(' after 'while'.");
+            var condition = Expression();
+            Consume(TokenType.RightParen, "Expect ')' after 'while' condition.");
+
+            var body = Statement();
+            return new WhileStmt(condition, body);
+        }
+        finally
+        {
+            _loopDepth--;
+        }
+    }
+
+    /*
+     * The `for` loop is desugared into a while statement => { initializer; while (condition) { body; increment; } }
+     * Some of the `for` clause semantics can be shortcut if not given.
+     */
+    private Stmt ForStmt()
+    {
+        try
+        {
+            _loopDepth++;
+            
+            Consume(TokenType.LeftParen, "Expect '(' after 'for'.");
+
+            Stmt? initializer;
+            if (Match(TokenType.SemiColon))
+                initializer = null;
+            else if (Match(TokenType.Var))
+                initializer = VarDecl();
+            else
+                initializer = ExprStmt();
+
+            // If no condition is given, we default it to true.
+            var condition = Check(TokenType.SemiColon) ? LiteralExpr.True : Expression();
+            Consume(TokenType.SemiColon, "Expect ';' after 'for' condition.");
+
+            var increment = Check(TokenType.RightParen) ? null : Expression();
+            Consume(TokenType.RightParen, "Expect ')' after 'for' clauses.");
+
+            var body = Statement();
+            ExprStmt? incrementStmt = null;
+
+            // If there is an increment, the body is now a new block with the increment after the existing loop body.
+            if (increment is not null)
+            {
+                incrementStmt = new ExprStmt(increment);
+                body = new BlockStmt([body, incrementStmt]);
+            }
+
+            var whileStmt = new WhileStmt(condition, body, incrementStmt);
+
+            // If there is no initializer, then we have the condition and body. We can return the WhileStmt as is.
+            if (initializer is null)
+                return whileStmt;
+
+            // Otherwise, an initializer is given. Create a new outer block to execute the initializer once,
+            // then followed up by the existing while statement.
+            return new BlockStmt([initializer, new WhileStmt(condition, body, incrementStmt)]);
+        }
+        finally
+        {
+            _loopDepth--;
+        }
+    }
+
+    private DoWhileStmt DoWhileStmt()
+    {
+        try
+        {
+            _loopDepth++;
+            
+            var body = Statement();
+            
+            Consume(TokenType.While, "Expect 'while' after 'do' body.");
+            Consume(TokenType.LeftParen, "Expect '(' after 'while'.");
+            var condition = Expression();
+            Consume(TokenType.RightParen, "Expect ')' after 'while' condition.");
+            Consume(TokenType.SemiColon, "Expect ';' after 'do-while' condition.");
+
+            return new DoWhileStmt(body, condition);
+        }
+        finally
+        {
+            _loopDepth--;
+        }
+    }
+    
+    private BreakStmt BreakStmt()
+    {
+        if (_loopDepth == 0)
+            Error(_prev, "Must be inside a loop to break.");
+        
+        Consume(TokenType.SemiColon, "Expect ';' after 'break'.");
+        return new BreakStmt();
+    }
+
+    private ContinueStmt ContinueStmt()
+    {
+        if (_loopDepth == 0)
+            Error(_prev, "Must be inside a loop to continue.");
+        
+        Consume(TokenType.SemiColon, "Expect ';' after 'continue'.");
+        return new ContinueStmt();
+    }
+
     private ExprStmt ExprStmt()
     {
         var expr = Expression();
@@ -111,14 +255,14 @@ public class Parser
 
     private Expr Assignment()
     {
-        var expr = Conditional();   // If parsing an actual assignment, this is expected be the target (VarExpr).
+        var expr = Conditional(); // If parsing an actual assignment, this is expected be the target (VarExpr).
 
         if (!Check(TokenType.Equal))
             return expr;
         
         var assignmentTarget = _prev;
-            
-        Advance();  // Consume '='
+
+        Advance(); // Consume '='
 
         var value = Assignment();
 

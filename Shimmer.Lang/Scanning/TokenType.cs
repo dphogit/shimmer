@@ -37,8 +37,15 @@ public enum TokenType
     And,
     Or,
     False,
+    If,
+    Else,
     True,
     Var,
+    While,
+    For,
+    Break,
+    Continue,
+    Do,
     Nil,
 
     // Misc

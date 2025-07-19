@@ -1,23 +1,11 @@
-﻿using Shimmer.UnitTests.Helpers;
+﻿namespace Shimmer.IntegrationTests;
 
-namespace Shimmer.IntegrationTests;
-
-public class ExpressionTests
+public class ExpressionTests : BaseIntegrationTest
 {
     private static void RunExpressionTest(string expression, string expected)
     {
-        // Arrange
         var source = $"print {expression};";
-        
-        var output = new StringWriter();
-        var driver = new ShimmerDriver(output);
-
-        // Act
-        var success = driver.Run(source);
-
-        // Assert
-        Assert.True(success);
-        output.AssertOutput(expected);
+        RunTest(source, expected);
     }
 
     [Theory]

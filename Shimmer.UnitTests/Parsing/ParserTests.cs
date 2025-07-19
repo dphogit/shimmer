@@ -7,6 +7,21 @@ namespace Shimmer.UnitTests.Parsing;
 
 public class ParserTests
 {
+    private static void RunParseTest<TStmt>(string source, string expected) where TStmt : Stmt
+    {
+        // Arrange
+        var parser = new Parser(source);
+        
+        // Act
+        var stmts = parser.Parse();
+        
+        // Assert
+        Assert.False(parser.HadError);
+        Assert.Single(stmts);
+        var stmt = Assert.IsType<TStmt>(stmts[0]);
+        Assert.Equal(expected, stmt.ToString());
+    }
+
     [Theory]
     [InlineData("1 + 2;", "(1 + 2)", TestDisplayName = "Addition")]
     [InlineData("1 - 2;", "(1 - 2)", TestDisplayName = "Subtraction")]
@@ -37,82 +52,104 @@ public class ParserTests
     [InlineData("false ? 1 : true ? 2 : 3;", "(false ? 1 : (true ? 2 : 3))", TestDisplayName = "Nested Conditional")]
     [InlineData("x;", "x", TestDisplayName = "Variable")]
     [InlineData("x = 2;", "(x = 2)", TestDisplayName = "Assignment")]
-    public void Parse_ExpressionStatements_ReturnsExprStmt(string expression, string expected)
-    {
-        // Arrange
-        var parser = new Parser(expression);
-
-        // Act
-        var stmts = parser.Parse();
-
-        // Assert
-        Assert.False(parser.HadError);
-        Assert.Single(stmts);
-        var exprStmt = Assert.IsType<ExprStmt>(stmts[0]);
-        Assert.Equal(expected, exprStmt.ToString());
-    }
-
+    public void Parse_ExpressionStatements_ReturnsExprStmt(string source, string expected) =>
+        RunParseTest<ExprStmt>(source, expected);
+    
     [Theory]
     [InlineData("print 1;", "(print 1)")]
     [InlineData("print 1 + 2;", "(print (1 + 2))")]
     [InlineData("print \"foo\";", "(print \"foo\")")]
-    public void Parse_PrintStatement_ReturnsPrintStmt(string expression, string expected)
-    {
-        // Arrange
-        var parser = new Parser(expression);
-        
-        // Act
-        var stmts = parser.Parse();
-        
-        // Assert
-        Assert.False(parser.HadError);
-        Assert.Single(stmts);
-        var printStmt = Assert.IsType<PrintStmt>(stmts[0]);
-        Assert.Equal(expected, printStmt.ToString());
-    }
+    public void Parse_PrintStatement_ReturnsPrintStmt(string source, string expected) =>
+        RunParseTest<PrintStmt>(source, expected);
 
     [Theory]
     [InlineData("var x;", "(var x = nil)", TestDisplayName = "No Initializer")]
     [InlineData("var x = 3;", "(var x = 3)", TestDisplayName = "Initializer")]
     [InlineData("var x = 9 * 8;", "(var x = (9 * 8))", TestDisplayName = "Expression Initializer")]
-    public void Parse_VariableDeclaration_ReturnsVarStmt(string expression, string expected)
-    {
-        // Arrange
-        var parser = new Parser(expression);
-        
-        // Act
-        var stmts = parser.Parse();
-        
-        // Assert
-        Assert.False(parser.HadError);
-        Assert.Single(stmts);
-        var varStmt = Assert.IsType<VarStmt>(stmts[0]);
-        Assert.Equal(expected, varStmt.ToString());
-    }
+    public void Parse_VariableDeclaration_ReturnsVarStmt(string source, string expected) =>
+        RunParseTest<VarStmt>(source, expected);
 
     [Fact]
     public void Parse_BlockStatement_ReturnsBlockStmt()
     {
-        // Arrange
-        var parser = new Parser("{ var x = 1 + 2; }");
-        
-        // Act
-        var stmts = parser.Parse();
-        
-        // Assert
-        Assert.False(parser.HadError);
-        Assert.Single(stmts);
-        var blockStmt = Assert.IsType<BlockStmt>(stmts[0]);
-        Assert.Equal("{ (var x = (1 + 2)) }", blockStmt.ToString());
+        const string source = "{ var x = 1 + 2; }";
+        const string expected = "{ (var x = (1 + 2)) }";
+        RunParseTest<BlockStmt>(source, expected);
+    }
+
+    [Fact]
+    public void Parse_IfStatement_ReturnsIfStmt()
+    {
+        const string source = "if (true) print 1;";
+        const string expected = "(if (true) (then print 1)) )";
+        RunParseTest<IfStmt>(source, expected);
+    }
+
+    [Fact]
+    public void Parse_IfElseStatement_ReturnsIfStmt()
+    {
+        const string source = "if (true) print 1; else print 2;";
+        const string expected = "(if (true) (then (print 1)) (else (print 2)) )";
+        RunParseTest<IfStmt>(source, expected);
+    }
+
+    [Fact]
+    public void Parse_Loop_ReturnsEquivalentWhileStmt()
+    {
+        const string source = "while (true) print 1;";
+        const string expected = "(while (true) (print 1) )";
+        RunParseTest<IfStmt>(source, expected);
+    }
+
+    [Fact]
+    public void Parse_ForLoop_DesugarsIntoBlockStmt()
+    {
+        const string source = "for (var i = 0; i < 10; i = i + 1) print i;";
+        const string expected = "{ (var i = 0) (while ((i < 10)) { (print i) (i = (i + 1)) } ) }";
+        RunParseTest<BlockStmt>(source, expected);
+    }
+    
+    [Fact]
+    public void Parse_ForLoopNoInitializer_DesugarsIntoWhileStmt()
+    {
+        const string source = "for (; i < 10; i = i + 1) print i;";
+        const string expected = "(while ((i < 10)) { (print i) (i = (i + 1)) } )";
+        RunParseTest<WhileStmt>(source, expected);
+    }
+
+    [Fact]
+    public void Parse_ForLoopNoIncrement_DesugarsIntoBlockStmt()
+    {
+        const string source = "for (var i = 0; i < 10;) print i;";
+        const string expected = "{ (var i = 0) (while ((i < 10)) (print i) ) }";
+        RunParseTest<BlockStmt>(source, expected);
+    }
+
+    [Fact]
+    public void Parse_ForLoopNoCondition_DesugarsIntoBlockStmt()
+    {
+        const string source = "for (var i = 0; ; i = i + 1) print i;";
+        const string expected = "{ (var i = 0) (while (true) { (print i) (i = (i + 1)) } ) }";
+        RunParseTest<BlockStmt>(source, expected);
+    }
+
+    [Fact]
+    public void Parse_DoWhileLoop_ReturnsDoWhileStmt()
+    {
+        const string source = "do { print true; } while (true);";
+        const string expected = "(do { (print true) } while (true) )";
+        RunParseTest<DoWhileStmt>(source, expected);
     }
     
     [Theory]
     [InlineData("1 + *", "[Line 1, Col 5] Error at '*': Expected expression.", TestDisplayName = "Invalid Expression")]
     [InlineData("(1 + 2", "[Line 1, Col 6] Error at end: Expected ')' after previous expression.",
         TestDisplayName = "No Closing Parenthesis")]
-    [InlineData("1 + 2)", "[Line 1, Col 6] Error at ')': Expect ';' after previous expression.", TestDisplayName = "No Opening Parenthesis")]
+    [InlineData("1 + 2)", "[Line 1, Col 6] Error at ')': Expect ';' after previous expression.",
+        TestDisplayName = "No Opening Parenthesis")]
     [InlineData("$", "[Line 1, Col 1] Error: Unexpected character '$'.", TestDisplayName = "Unexpected Character")]
-    [InlineData("{ 1;", "[Line 1, Col 4] Error at end: Expect '}' at end of block.")]
+    [InlineData("{ 1;", "[Line 1, Col 4] Error at end: Expect '}' at end of block.",
+        TestDisplayName = "No Closing Brace")]
     public void Parse_InvalidSyntax_ReportsError(string source, string expected)
     {
         // Arrange

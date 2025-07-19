@@ -73,7 +73,7 @@ public class Environment
         {
             if (current._values.ContainsKey(name.Lexeme))
             {
-                _values[name.Lexeme] = value;
+                current._values[name.Lexeme] = value;
                 return;
             }
             

@@ -81,6 +81,34 @@ var x = "global";
 }
 ```
 
+### Control Flow
+
+Shimmer's control flow constructs contain no surprises, similar to other programming languages:
+- `if` and `if-else` statements
+- `while`, `for`, and `do-while` loops
+
+Examples:
+```shimmer
+if (true) { print "1"; }
+
+if (true) { print "1"; } else { print "2"; }
+
+while (true) { print "Infinite Loop"; }
+
+for (var i = 0; i < 10; i = i + 1) { print i + 1; }
+
+do { print "Infinite Loop"; } while (true);
+```
+
+The statements to the execution branches don't necessarily have to be blocks:
+
+```shimmer
+if (true) print "1";
+```
+
+For the [Dangling Else](https://en.wikipedia.org/wiki/Dangling_else) problem, the `else` is bound to the nearest
+`if` that precedes it. For example, `if (cond1) if (cond2) s1; else s2;` - `s2` is bound to `if (cond2) s1`.
+
 ## Grammar
 
 We use EBNF-like notation to describe the lexical and syntax grammars which the scanner and parser process respectively.
@@ -117,12 +145,34 @@ declaration = varDecl
 varDecl     = "var" IDENTIFIER ( "=" expression )? ";" ;
 
 statement   = printStmt
-            | exprStmt 
+            | exprStmt
+            | ifStmt
+            | whileStmt
+            | forStmt
+            | doWhileStmt
+            | breakStmt
+            | contStmt
             | block ;
             
 printStmt   = "print" expression ";" ;
 
 exprStmt    = expression ";" ;
+
+ifStmt      = "if" "(" expression ")" statement ( "else" statement )? ;
+
+whileStmt   = "while" "(" expression ")" statement ;
+
+forStmt     = "for" "("
+              ( varDecl | exprStmt | ";" )    (* initializer *)
+              expression? ";"                 (* condition *)
+              expression? ")"                 (* increment *)
+              statement ;                     (* loop body *)
+              
+doWhileStmt = "do" statement "while" "(" expression ")" ";" ;
+              
+breakStmt   = "break" ";" ;
+
+contStmt    = "continue" ";" ;
 
 block       = "{" declaration* "}" ;
 

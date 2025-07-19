@@ -7,6 +7,9 @@ namespace Shimmer.Interpreter;
 
 public class TreeWalkInterpreter : IInterpreter
 {
+    private class BreakException : Exception;
+    private class ContinueException : Exception;
+    
     private Environment _environment = new();
     
     private readonly TextWriter _outputWriter;
@@ -45,14 +48,27 @@ public class TreeWalkInterpreter : IInterpreter
             case BlockStmt blockStmt:
                 ExecuteBlockStmt(blockStmt, new Environment(_environment));
                 break;
+            case BreakStmt:
+                throw new BreakException();
+            case ContinueStmt:
+                throw new ContinueException();
+            case DoWhileStmt doWhileStmt:
+                ExecuteDoWhileStmt(doWhileStmt);
+                break;
             case ExprStmt exprStmt:
                 Eval(exprStmt.Expr);
+                break;
+            case IfStmt ifStmt:
+                ExecuteIfStmt(ifStmt);
                 break;
             case PrintStmt printStmt:
                 ExecutePrintStmt(printStmt);
                 break;
             case VarStmt varStmt:
                 ExecuteVarStmt(varStmt);
+                break;
+            case WhileStmt whileStmt:
+                ExecuteWhileStmt(whileStmt);
                 break;
             default:
                 throw new ArgumentException($"Cannot execute statement type '{stmt.GetType().Name}.");
@@ -77,9 +93,69 @@ public class TreeWalkInterpreter : IInterpreter
         }
     }
 
+    private void ExecuteDoWhileStmt(DoWhileStmt doWhileStmt)
+    {
+        try
+        {
+            do
+            {
+                try
+                {
+                    Execute(doWhileStmt.Body);
+                }
+                catch (ContinueException)
+                {
+                    // continue statement - go to next iteration
+                }
+            } while (IsTruthy(Eval(doWhileStmt.Condition)));
+        }
+        catch (BreakException)
+        {
+            // break statement - exit loop
+        }
+    }
+    
+    private void ExecuteIfStmt(IfStmt ifStmt)
+    {
+        var condition = Eval(ifStmt.Condition);
+
+        if (IsTruthy(condition))
+        {
+            Execute(ifStmt.ThenBranch);
+        }
+        else if (ifStmt.ElseBranch is not null)
+        {
+            Execute(ifStmt.ElseBranch);
+        }
+    }
+
     private void ExecutePrintStmt(PrintStmt printStmt) => _outputWriter.WriteLine(Eval(printStmt.Expr).ToString());
 
     private void ExecuteVarStmt(VarStmt varStmt) => _environment.Define(varStmt.Name, Eval(varStmt.Initializer));
+
+    private void ExecuteWhileStmt(WhileStmt whileStmt)
+    {
+        try
+        {
+            while (IsTruthy(Eval(whileStmt.Condition)))
+            {
+                try
+                {
+                    Execute(whileStmt.Body);
+                }
+                catch (ContinueException)
+                {
+                    // continue statement - increment if the clause is given (for loops)
+                    if (whileStmt.Increment is not null)
+                        Execute(whileStmt.Increment);
+                }
+            }
+        }
+        catch (BreakException)
+        {
+            // break statement - exit loop
+        }
+    }
 
     private ShimmerValue Eval(Expr expr) => expr switch
     {
