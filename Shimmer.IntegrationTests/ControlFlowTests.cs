@@ -65,6 +65,38 @@ public class ControlFlowTests : BaseIntegrationTest
     }
 
     [Fact]
+    public void SwitchStatement()
+    {
+        const string source = """
+                              var x = 2;
+                              
+                              switch (x) {
+                                case 1:  print "one";
+                                case 2:  print "two";
+                                default: print "other";
+                              }
+                              """;
+        
+        RunTest(source, "\"two\"");
+    }
+
+    [Fact]
+    public void SwitchStatement_NoCaseMatch_ExecutesDefault()
+    {
+        const string source = """
+                              var x = 3;
+                              
+                              switch (x) {
+                                case 1:  print "one";
+                                case 2:  print "two";
+                                default: print "other";
+                              }
+                              """;
+        
+        RunTest(source, "\"other\"");
+    }
+
+    [Fact]
     public void Break_ExitsLoop()
     {
         const string source = """
@@ -101,7 +133,7 @@ public class ControlFlowTests : BaseIntegrationTest
     }
     
     [Fact]
-    public void BreakOutsideLoop_GivesError()
+    public void Break_OutsideLoop_GivesError()
     {
         const string source = "break;";
         const string expected = "[Line 1, Col 1] Error at 'break': Must be inside a loop to break.";
@@ -109,7 +141,7 @@ public class ControlFlowTests : BaseIntegrationTest
     }
 
     [Fact]
-    public void ContinueOutsideLoop_GivesError()
+    public void Continue_OutsideLoop_GivesError()
     {
         const string source = "continue;";
         const string expected = "[Line 1, Col 1] Error at 'continue': Must be inside a loop to continue.";

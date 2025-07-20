@@ -64,6 +64,9 @@ public class TreeWalkInterpreter : IInterpreter
             case PrintStmt printStmt:
                 ExecutePrintStmt(printStmt);
                 break;
+            case SwitchStmt switchStmt:
+                ExecuteSwitchStmt(switchStmt);
+                break;
             case VarStmt varStmt:
                 ExecuteVarStmt(varStmt);
                 break;
@@ -131,6 +134,25 @@ public class TreeWalkInterpreter : IInterpreter
 
     private void ExecutePrintStmt(PrintStmt printStmt) => _outputWriter.WriteLine(Eval(printStmt.Expr).ToString());
 
+    private void ExecuteSwitchStmt(SwitchStmt switchStmt)
+    {
+        var expression = Eval(switchStmt.Expr);
+
+        // Execute the first case that matches the expression.
+        foreach (var caseClause in switchStmt.Cases)
+        {
+            if (!Eval(caseClause.Condition).Equals(expression))
+                continue;
+            
+            Execute(caseClause.Stmt);
+            return;
+        }
+
+        // No cases match the expression, execute the default case if given.
+        if (switchStmt.DefaultClause is not null)
+            Execute(switchStmt.DefaultClause);
+    }
+    
     private void ExecuteVarStmt(VarStmt varStmt) => _environment.Define(varStmt.Name, Eval(varStmt.Initializer));
 
     private void ExecuteWhileStmt(WhileStmt whileStmt)

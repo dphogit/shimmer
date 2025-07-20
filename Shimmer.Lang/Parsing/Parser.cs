@@ -82,6 +82,9 @@ public class Parser
         if (Match(TokenType.If))
             return IfStmt();
 
+        if (Match(TokenType.Switch))
+            return SwitchStmt();
+
         if (Match(TokenType.While))
             return WhileStmt();
 
@@ -130,6 +133,39 @@ public class Parser
         return new IfStmt(condition, thenBranch, elseBranch);
     }
 
+    private SwitchStmt SwitchStmt()
+    {
+        Consume(TokenType.LeftParen, "Expect '(' after 'switch'.");
+        var expression = Expression();
+        Consume(TokenType.RightParen, "Expect ')' after 'switch' expression.");
+
+        Consume(TokenType.LeftBrace, "Expect '{' at start of 'switch' body.");
+
+        List<SwitchStmt.CaseClause> cases = [];
+        while (Match(TokenType.Case))
+            cases.Add(CaseClause());
+
+        var defaultCase = Match(TokenType.Default) ? DefaultCase() : null;
+        
+        Consume(TokenType.RightBrace, "Expect '}' at end of 'switch' body.");
+        
+        return new SwitchStmt(expression, cases, defaultCase);
+    }
+
+    private SwitchStmt.CaseClause CaseClause()
+    {
+        var expression = Expression();
+        Consume(TokenType.Colon, "Expect ':' after 'case' expression.");
+        var statement = Statement();
+        return new SwitchStmt.CaseClause(expression, statement);
+    }
+
+    private Stmt DefaultCase()
+    {
+        Consume(TokenType.Colon, "Expect ':' after 'default'.");
+        return Statement();
+    }
+    
     private WhileStmt WhileStmt()
     {
         try

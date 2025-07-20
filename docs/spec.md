@@ -83,8 +83,8 @@ var x = "global";
 
 ### Control Flow
 
-Shimmer's control flow constructs contain no surprises, similar to other programming languages:
-- `if` and `if-else` statements
+Shimmer's control flow constructs are similar to other programming languages:
+- `if`, `if-else` and `switch-case` statements
 - `while`, `for`, and `do-while` loops
 
 Examples:
@@ -98,16 +98,23 @@ while (true) { print "Infinite Loop"; }
 for (var i = 0; i < 10; i = i + 1) { print i + 1; }
 
 do { print "Infinite Loop"; } while (true);
-```
 
-The statements to the execution branches don't necessarily have to be blocks:
-
-```shimmer
-if (true) print "1";
+switch (x) {
+  case 1:  print "one";
+  case 2:  print "two";
+  default: print "unknown";
+}
 ```
 
 For the [Dangling Else](https://en.wikipedia.org/wiki/Dangling_else) problem, the `else` is bound to the nearest
 `if` that precedes it. For example, `if (cond1) if (cond2) s1; else s2;` - `s2` is bound to `if (cond2) s1`.
+
+The `switch-case` has been simplified compared to other programming languages, for simplicity and intentionally designed
+to prevent user mistakes in common scenarios:
+- The first `case` clause to be matched according to the evaluated `switch` expression will be executed.
+- When this `case` is executed, it will immediately exit the `switch` statement. This means that fallthrough cases will
+not occur, and a `break` statement at the end of the `case` is not allowed (reserved for loops only).
+- If no cases match, then the `default` clause will execute if given.
 
 ## Grammar
 
@@ -147,6 +154,7 @@ varDecl     = "var" IDENTIFIER ( "=" expression )? ";" ;
 statement   = printStmt
             | exprStmt
             | ifStmt
+            | switchStmt
             | whileStmt
             | forStmt
             | doWhileStmt
@@ -159,6 +167,12 @@ printStmt   = "print" expression ";" ;
 exprStmt    = expression ";" ;
 
 ifStmt      = "if" "(" expression ")" statement ( "else" statement )? ;
+
+switchStmt  = "switch" "(" expression ")" "{" switchCase* defaultCase "}" ;
+
+switchCase  = "case" expression ":" statement* ;
+
+defaultCase = "default" ":" statement* ;
 
 whileStmt   = "while" "(" expression ")" statement ;
 

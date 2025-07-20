@@ -46,6 +46,9 @@ public enum TokenType
     Break,
     Continue,
     Do,
+    Switch,
+    Case,
+    Default,
     Nil,
 
     // Misc

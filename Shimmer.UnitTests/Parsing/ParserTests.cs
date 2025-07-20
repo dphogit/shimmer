@@ -140,6 +140,20 @@ public class ParserTests
         const string expected = "(do { (print true) } while (true) )";
         RunParseTest<DoWhileStmt>(source, expected);
     }
+
+    [Fact]
+    public void Parse_SwitchStatement_ReturnsSwitchStmt()
+    {
+        const string source = """
+                              switch (1) {
+                                case 1: print 1;
+                                case 2: print 2;
+                                default: print 3;
+                              }
+                              """;
+        const string expected = "(switch (1) (case 1 : (print 1)) (case 2 : (print 2)) (default : (print 3)) )";
+        RunParseTest<SwitchStmt>(source, expected);
+    }
     
     [Theory]
     [InlineData("1 + *", "[Line 1, Col 5] Error at '*': Expected expression.", TestDisplayName = "Invalid Expression")]
