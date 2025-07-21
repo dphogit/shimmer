@@ -8,6 +8,9 @@ namespace Shimmer.Parsing;
 
 public class Parser
 {
+    private const int MaxArguments = 255;
+    private const int MaxParameters = MaxArguments;
+    
     public bool HadError { get; private set; } = false;
     
     private Token _current = null!;
@@ -15,7 +18,7 @@ public class Parser
 
     private int _loopDepth = 0;
 
-    private class ParseException : Exception;
+    private class ParseException(string message) : Exception(message);
 
     private readonly IScanner _scanner;
     private readonly TextWriter _errorWriter;
@@ -59,6 +62,9 @@ public class Parser
     {
         if (Match(TokenType.Var))
             return VarDecl();
+
+        if (Match(TokenType.Function))
+            return FunctionDecl();
         
         return Statement();
     }
@@ -69,6 +75,39 @@ public class Parser
         var initializer = Match(TokenType.Equal) ? Expression() : null;
         Consume(TokenType.SemiColon, "Expect ';' after variable declaration.");
         return new VarStmt(name, initializer);
+    }
+
+    private FunctionStmt FunctionDecl()
+    {
+        var name = Consume(TokenType.Identifier, "Expect function name.");
+        
+        Consume(TokenType.LeftParen, "Expect '(' after function name.");
+        var parameters = FunctionParameters();
+        Consume(TokenType.RightParen, "Expect ')' after parameters.");
+        
+        Consume(TokenType.LeftBrace, "Expect '{' before function body.");
+        var body = Block();
+
+        return new FunctionStmt(name, parameters, body);
+    }
+
+    private List<Token> FunctionParameters()
+    {
+        if (Check(TokenType.RightParen))
+            return [];
+
+        List<Token> parameters = [];
+
+        do
+        {
+            if (parameters.Count >= MaxParameters)
+                Error(_current, $"Exceeded maximum of {MaxParameters} parameters.");
+            
+            var param = Consume(TokenType.Identifier, "Expect parameter name.");
+            parameters.Add(param);
+        } while (Match(TokenType.Comma));
+
+        return parameters;
     }
 
     private Stmt Statement()
@@ -99,6 +138,9 @@ public class Parser
 
         if (Match(TokenType.Continue))
             return ContinueStmt();
+
+        if (Match(TokenType.Return))
+            return ReturnStmt();
 
         return ExprStmt();
     }
@@ -278,6 +320,14 @@ public class Parser
         return new ContinueStmt();
     }
 
+    private ReturnStmt ReturnStmt()
+    {
+        var keyword = _prev;
+        var expression = Check(TokenType.SemiColon) ? LiteralExpr.Nil : Expression();
+        Consume(TokenType.SemiColon, "Expect ';' at end of 'return' statement.");
+        return new ReturnStmt(keyword, expression);
+    }
+
     private ExprStmt ExprStmt()
     {
         var expr = Expression();
@@ -335,7 +385,40 @@ public class Parser
 
     private Expr Factor() => LeftAssociativeBinaryOperator(Unary, TokenType.Star, TokenType.Slash);
 
-    private Expr Unary() => Match(TokenType.Minus, TokenType.Bang) ? new UnaryExpr(_prev, Unary()) : Primary();
+    private Expr Unary() => Match(TokenType.Minus, TokenType.Bang) ? new UnaryExpr(_prev, Unary()) : Call();
+
+    private Expr Call()
+    {
+        var expr = Primary(); // If parsing a function call, this is the callee.
+
+        while (Match(TokenType.LeftParen))
+        {
+            expr = FinishCall(expr);
+        }
+
+        return expr;
+    }
+
+    private CallExpr FinishCall(Expr callee)
+    {
+        // Initial check for no arguments to parse
+        if (Match(TokenType.RightParen))
+            return new CallExpr(callee, _prev, []);
+        
+        List<Expr> arguments = [];
+
+        do
+        {
+            if (arguments.Count >= MaxArguments)
+                Error(_current, $"Exceeded maximum of {MaxArguments} arguments.");
+            
+            arguments.Add(Assignment());
+        } while (Match(TokenType.Comma));
+
+        var paren = Consume(TokenType.RightParen, "Expect ')' after arguments.");
+        
+        return new CallExpr(callee, paren, arguments);
+    }
 
     private Expr Primary()
     {
@@ -432,9 +515,11 @@ public class Parser
         };
 
         sb.Append($"{location}: {message}");
+        
+        var errorMessage = sb.ToString();
 
-        _errorWriter.Write(sb.ToString());
-        return new ParseException();
+        _errorWriter.WriteLine(errorMessage);
+        return new ParseException(errorMessage);
     }
 
     // Skip tokens until a statement boundary is reached.

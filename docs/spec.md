@@ -28,6 +28,7 @@ Shimmer supports the built-in types: `number`, `bool`, `string`, `nil`.
 |  `A, B, C`  | Comma operator, evaluates to `C`. Allows for comma-separated series of expressions where a single expression is expected.   |
 | `A ? B : C` | Ternary (conditional), if `A` is truthy then evaluate to `B` otherwise `C`.                                                 |
 |   `A = B`   | Assignment. Assign the value `B` to variable `A`.                                                                           |
+|    `A()`    | Call `A`. The callee `A` is anything that evaluates to a `function` in Shimmer.                                             |
 
 In conditional contexts (e.g. `if` and `while`), the truthiness of the condition is evaluated, following Ruby's
 definition of truthy and falsy values. The values of `false` and `nil` are considered falsy, and all other values are
@@ -38,17 +39,18 @@ implied by the [grammar](#grammar) section below where deeper expression-related
 
 | Precedence | Operator          | Description                                                              | Associativity |
 |:----------:|:------------------|--------------------------------------------------------------------------|:-------------:|
-|   **1**    | `-`               | Unary negation                                                           | Right to left |     
+|   **1**    | `()`              | Function call                                                            | Left to right |     
+|   **2**    | `-`               | Unary negation                                                           | Right to left |     
 |            | `!`               | Logical `NOT`                                                            |               |
-|   **2**    | `*` `/`           | Multiplication and division                                              | Left to right |
-|   **3**    | `+` `-` `%`       | Addition, subtraction and remainder                                      | Left to right |
-|   **4**    | `<` `<=` `>` `>=` | Relational: Less than, less than equal, greater than, greater than equal | Left to right |
-|   **5**    | `!=` `==`         | Relational: Equal, and not equal                                         | Left to right |
-|   **6**    | `&&`              | Logical `AND`                                                            | Left to right |
-|   **7**    | `\|\|`            | Logical `OR`                                                             | Left to right |
-|   **8**    | `? :`             | Ternary conditional                                                      | Right to left |
-|   **9**    | `=`               | Assignment                                                               | Right to left |
-|   **10**   | `,`               | Comma operator                                                           | Left to right |
+|   **3**    | `*` `/`           | Multiplication and division                                              | Left to right |
+|   **4**    | `+` `-` `%`       | Addition, subtraction and remainder                                      | Left to right |
+|   **5**    | `<` `<=` `>` `>=` | Relational: Less than, less than equal, greater than, greater than equal | Left to right |
+|   **6**    | `!=` `==`         | Relational: Equal, and not equal                                         | Left to right |
+|   **7**    | `&&`              | Logical `AND`                                                            | Left to right |
+|   **8**    | `\|\|`            | Logical `OR`                                                             | Left to right |
+|   **9**    | `? :`             | Ternary conditional                                                      | Right to left |
+|   **10**   | `=`               | Assignment                                                               | Right to left |
+|   **11**   | `,`               | Comma operator                                                           | Left to right |
 
 ### Comments
 
@@ -64,7 +66,7 @@ var x;
 print x;  // nil
 ```
 
-Variables cannot be redefined if the variable name has already been defined in the same scope. 
+Variables cannot be redefined if the variable name has already been defined in the same scope.
 
 ```shimmer
 var x = 10;
@@ -84,10 +86,12 @@ var x = "global";
 ### Control Flow
 
 Shimmer's control flow constructs are similar to other programming languages:
+
 - `if`, `if-else` and `switch-case` statements
 - `while`, `for`, and `do-while` loops
 
 Examples:
+
 ```shimmer
 if (true) { print "1"; }
 
@@ -111,10 +115,35 @@ For the [Dangling Else](https://en.wikipedia.org/wiki/Dangling_else) problem, th
 
 The `switch-case` has been simplified compared to other programming languages, for simplicity and intentionally designed
 to prevent user mistakes in common scenarios:
+
 - The first `case` clause to be matched according to the evaluated `switch` expression will be executed.
 - When this `case` is executed, it will immediately exit the `switch` statement. This means that fallthrough cases will
-not occur, and a `break` statement at the end of the `case` is not allowed (reserved for loops only).
+  not occur, and a `break` statement at the end of the `case` is not allowed (reserved for loops only).
 - If no cases match, then the `default` clause will execute if given.
+
+### Functions
+
+To declare a function, use the `function` keyword. Use a block to define it with an associated identifier.
+
+```shimmer
+function add(a, b) {
+  return a + b;
+}
+```
+
+Functions are first-class values in Shimmer. They can be passed into functions, returned from functions, etc. just like
+other Shimmer value types.
+
+For the syntax `functionCall()` - `functionCall` is the callee, which can be any expression that evaluates to a
+function. For example - `getCallback()()`, there are two call expressions here. The first pair of parentheses has
+`getCallback` as its callee, the second pair will have `getCallback()` as its callee.
+
+Shimmer has built-in functions defined at global scope. These will be added and improved in future releases.
+- `clock()` - Returns the number of milliseconds that have elapsed since 1970-01-01T00:00:00.000Z.
+- `typeof(value)` - Returns the given value's type in Shimmer's type system. e.g. `String`, `Number` etc.
+
+All functions in Shimmer return a value. The returned value can be user defined by using the `return <expression>;`
+statement. A `return` with no expression or omitting the `return` in the function will return `nil` implicitly.
 
 ## Grammar
 
@@ -147,7 +176,10 @@ DIGIT      = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
 program     = declaration* EOF;
 
 declaration = varDecl
+            | funcDecl
             | statement ;
+            
+funcDecl    = "function" IDENTIFIER "(" parameters? ")" block ;
             
 varDecl     = "var" IDENTIFIER ( "=" expression )? ";" ;
 
@@ -160,6 +192,7 @@ statement   = printStmt
             | doWhileStmt
             | breakStmt
             | contStmt
+            | returnStmt
             | block ;
             
 printStmt   = "print" expression ";" ;
@@ -188,6 +221,8 @@ breakStmt   = "break" ";" ;
 
 contStmt    = "continue" ";" ;
 
+returnStmt  = "return" expression? ";" ;
+
 block       = "{" declaration* "}" ;
 
 expression  = comma ;
@@ -212,7 +247,9 @@ term        = factor ( ( "+" | "-" | "%" ) factor )* ;
 factor      = primary ( ( "*" | "/" ) primary )* ;
 
 unary       = ( "-" | "!" ) unary
-            | primary
+            | call
+            
+call        = primary ( "(" args ")" )* ;
 
 primary     = NUMBER
             | grouping
@@ -223,5 +260,10 @@ primary     = NUMBER
 
 (* Grouping parenthesis gives a way to raise an expression's precedence to the top *)
 grouping    = "(" expression ")" ;
+
+(* Parsing arguments need to be of higher precedence than the comma operator *)
+args        = assignment ( "," assignment )* ;
+
+parameters  = IDENTIFIER ( "," IDENITIFER )* ;
 ```
 

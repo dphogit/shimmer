@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
+using Shimmer.Representation.Functions;
 
 namespace Shimmer.Representation;
 
@@ -32,7 +33,15 @@ public class ShimmerValue
     public bool IsString => Type == ShimmerType.String;
     public string AsString => IsString ? (string)Value! : throw new InvalidOperationException("Value is not a string.");
 
+    public static ShimmerValue Function(ShimmerFunction f) => new(ShimmerType.Function, f);
+    public bool IsFunction => Type == ShimmerType.Function;
+    public ShimmerFunction AsFunction => IsFunction
+        ? (ShimmerFunction)Value!
+        : throw new InvalidOperationException("Value is not a function.");
+
     public bool IsNil => Type == ShimmerType.Nil;
+    
+    public bool IsCallable => Type == ShimmerType.Function;
     
     public override string ToString() =>
         Type switch
@@ -41,6 +50,7 @@ public class ShimmerValue
             ShimmerType.Bool => AsBool ? "true" : "false",
             ShimmerType.Nil => "nil",
             ShimmerType.String => $"\"{AsString}\"",
+            ShimmerType.Function => AsFunction.ToString()!,
             _ => throw new UnreachableException($"Unknown shimmer value type '{Type}'."),
         };
 
@@ -57,6 +67,7 @@ public class ShimmerValue
             ShimmerType.Bool => AsBool == other.AsBool,
             ShimmerType.Nil => other.IsNil,
             ShimmerType.String => AsString == other.AsString,
+            ShimmerType.Function => AsFunction == other.AsFunction,
             _ => throw new UnreachableException($"Unknown shimmer value type '{Type}'."),
         };
     }

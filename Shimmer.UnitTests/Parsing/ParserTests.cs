@@ -81,7 +81,7 @@ public class ParserTests
     public void Parse_IfStatement_ReturnsIfStmt()
     {
         const string source = "if (true) print 1;";
-        const string expected = "(if (true) (then print 1)) )";
+        const string expected = "(if (true) (then (print 1)) )";
         RunParseTest<IfStmt>(source, expected);
     }
 
@@ -98,7 +98,7 @@ public class ParserTests
     {
         const string source = "while (true) print 1;";
         const string expected = "(while (true) (print 1) )";
-        RunParseTest<IfStmt>(source, expected);
+        RunParseTest<WhileStmt>(source, expected);
     }
 
     [Fact]
@@ -154,6 +154,42 @@ public class ParserTests
         const string expected = "(switch (1) (case 1 : (print 1)) (case 2 : (print 2)) (default : (print 3)) )";
         RunParseTest<SwitchStmt>(source, expected);
     }
+
+    [Fact]
+    public void Parse_FunctionCall_ReturnsCallExprStmt()
+    {
+        const string source = "avg(1, 1 + 2);";
+        const string expected = "(call avg 1 (1 + 2) )";
+        RunParseTest<ExprStmt>(source, expected);
+    }
+
+    [Fact]
+    public void Parse_FunctionCallNoArgs_ReturnsCallExprStmt()
+    {
+        const string source = "avg();";
+        const string expected = "(call avg)";
+        RunParseTest<ExprStmt>(source, expected);
+    }
+
+    [Fact]
+    public void Parse_FunctionDeclaration_ReturnsFunctionStmt()
+    {
+        const string source = "function add(a, b) { print a + b; }";
+        const string expected = "(fn add(a, b) { (print (a + b)) } )";
+        RunParseTest<FunctionStmt>(source, expected);
+    }
+
+    [Fact]
+    public void Parse_FunctionDeclarationNoArgs_ReturnsFunctionStmt()
+    {
+        const string source = "function printOne() { print 1; }";
+        const string expected = "(fn printOne() { (print 1) } )";
+        RunParseTest<FunctionStmt>(source, expected);
+    }
+
+    [Fact]
+    public void Parse_ReturnStatement_ReturnsReturnStmt() => 
+        RunParseTest<ReturnStmt>("return 1;", "(return 1)");
     
     [Theory]
     [InlineData("1 + *", "[Line 1, Col 5] Error at '*': Expected expression.", TestDisplayName = "Invalid Expression")]

@@ -85,4 +85,12 @@ public class ExpressionTests : BaseIntegrationTest
     [InlineData("\"Foo\" == \"foo\"", "false", TestDisplayName = "Case Sensitive Inequality")]
     public void String_EvaluatesCorrectly(string expression, string expected) =>
         RunExpressionTest(expression, expected);
+    
+    [Theory]
+    [InlineData("typeof(1)", "\"Number\"")]
+    [InlineData("typeof(\"pancakes\")", "\"String\"")]
+    [InlineData("typeof(nil)", "\"Nil\"")]
+    [InlineData("typeof(true)", "\"Bool\"")]
+    public void BuiltInTypeOf_ReturnsCorrectValueType(string expression, string expected) =>
+        RunExpressionTest(expression, expected);
 }

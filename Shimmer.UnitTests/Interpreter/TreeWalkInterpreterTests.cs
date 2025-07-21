@@ -26,9 +26,10 @@ public class TreeWalkInterpreterTests
         var interpreter = new TreeWalkInterpreter(sw);
 
         // Act
-        interpreter.Interpret([stmt]);
+        var success = interpreter.Interpret([stmt]);
 
         // Assert
+        Assert.True(success);
         sw.AssertOutput(expected);
     }
 
@@ -61,9 +62,10 @@ public class TreeWalkInterpreterTests
         var interpreter = new TreeWalkInterpreter(sw);
 
         // Act
-        interpreter.Interpret([stmt]);
+        var success = interpreter.Interpret([stmt]);
 
         // Assert
+        Assert.True(success);
         sw.AssertOutput(expected);
     }
 
@@ -78,9 +80,10 @@ public class TreeWalkInterpreterTests
         var interpreter = new TreeWalkInterpreter(errorWriter: sw);
 
         // Act
-        interpreter.Interpret([stmt]);
+        var success = interpreter.Interpret([stmt]);
 
         // Assert
+        Assert.False(success);
         sw.AssertRuntimeError(1, "Division by 0.");
     }
 
@@ -95,9 +98,10 @@ public class TreeWalkInterpreterTests
         var interpreter = new TreeWalkInterpreter(errorWriter: sw);
 
         // Act
-        interpreter.Interpret([stmt]);
+        var success = interpreter.Interpret([stmt]);
 
         // Assert
+        Assert.False(success);
         sw.AssertRuntimeError(1, $"Bad operand type for unary '-': 'Bool'.");
     }
 
@@ -121,9 +125,10 @@ public class TreeWalkInterpreterTests
         var interpreter = new TreeWalkInterpreter(errorWriter: sw);
 
         // Act
-        interpreter.Interpret([stmt]);
+        var success = interpreter.Interpret([stmt]);
 
         // Assert
+        Assert.False(success);
         sw.AssertRuntimeError(1, $"Unsupported operand type(s) for '{opToken.Lexeme}': 'Number' and 'Bool'.");
     }
 
@@ -139,9 +144,10 @@ public class TreeWalkInterpreterTests
         var interpreter = new TreeWalkInterpreter(errorWriter: sw);
 
         // Act
-        interpreter.Interpret([stmt]);
+        var success = interpreter.Interpret([stmt]);
 
         // Assert
+        Assert.False(success);
         sw.AssertRuntimeError(1, $"Unsupported operand type(s) for '+': 'Number' and 'String'.");
     }
 
@@ -157,9 +163,10 @@ public class TreeWalkInterpreterTests
         var interpreter = new TreeWalkInterpreter(errorWriter: sw);
 
         // Act
-        interpreter.Interpret([stmt]);
+        var success = interpreter.Interpret([stmt]);
 
         // Assert
+        Assert.False(success);
         sw.AssertRuntimeError(1, $"Unsupported operand type(s) for '+': 'String' and 'Number'.");
     }
 
@@ -175,9 +182,10 @@ public class TreeWalkInterpreterTests
         var interpreter = new TreeWalkInterpreter(errorWriter: sw);
         
         // Act
-        interpreter.Interpret([varDecl1, varDecl2]);
+        var success = interpreter.Interpret([varDecl1, varDecl2]);
         
         // Assert
+        Assert.False(success);
         sw.AssertRuntimeError(1, $"Variable '{name.Lexeme}' already defined in this scope.");
     }
 
@@ -192,9 +200,10 @@ public class TreeWalkInterpreterTests
         var interpreter = new TreeWalkInterpreter(errorWriter: sw);
         
         // Act
-        interpreter.Interpret([stmt]);
+        var success = interpreter.Interpret([stmt]);
         
         // Assert
+        Assert.False(success);
         sw.AssertRuntimeError(1, $"Undefined variable '{name.Lexeme}'.");
     }
 }

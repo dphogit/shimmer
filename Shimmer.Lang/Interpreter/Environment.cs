@@ -1,4 +1,5 @@
 ﻿using Shimmer.Representation;
+using Shimmer.Representation.Functions.Native;
 using Shimmer.Scanning;
 
 namespace Shimmer.Interpreter;
@@ -21,6 +22,8 @@ public class Environment
         _enclosing = enclosing;
         _values = new Dictionary<string, ShimmerValue>();
     }
+
+    public static Environment CreateGlobal() => new Environment().AddNatives();
 
     /// <summary>
     /// Bind the value to the given variable in this environment.

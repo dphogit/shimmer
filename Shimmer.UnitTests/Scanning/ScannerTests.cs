@@ -51,6 +51,8 @@ public class ScannerTests
     [InlineData("switch", TokenType.Switch)]
     [InlineData("case", TokenType.Case)]
     [InlineData("default", TokenType.Default)]
+    [InlineData("function", TokenType.Function)]
+    [InlineData("return", TokenType.Return)]
     [InlineData("true", TokenType.True)]
     [InlineData("nil", TokenType.Nil)]
     [InlineData("var", TokenType.Var)]

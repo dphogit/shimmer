@@ -28,8 +28,6 @@ public class ShimmerDriver
         if (parser.HadError)
             return false;
 
-        _interpreter.Interpret(ast);
-
-        return true;
+        return _interpreter.Interpret(ast);
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Shimmer.Parsing.Expressions;
 using Shimmer.Parsing.Statements;
 using Shimmer.Representation;
+using Shimmer.Representation.Functions;
 using Shimmer.Scanning;
 
 namespace Shimmer.Interpreter;
@@ -9,8 +10,10 @@ public class TreeWalkInterpreter : IInterpreter
 {
     private class BreakException : Exception;
     private class ContinueException : Exception;
-    
-    private Environment _environment = new();
+
+    // Store references to the global and current execution environments.
+    public Environment Globals { get; }
+    private Environment _environment;
     
     private readonly TextWriter _outputWriter;
     private readonly TextWriter _errorWriter;
@@ -26,18 +29,24 @@ public class TreeWalkInterpreter : IInterpreter
     {
         _outputWriter = outputWriter ?? Console.Out;
         _errorWriter = errorWriter ?? Console.Error;
+        
+        Globals = Environment.CreateGlobal();
+        _environment = Globals;
     }
 
-    public void Interpret(IList<Stmt> stmts)
+    public bool Interpret(IList<Stmt> stmts)
     {
         try
         {
             foreach (var stmt in stmts)
                 Execute(stmt);
+            
+            return true;
         }
         catch (RuntimeError e)
         {
             _errorWriter.WriteLine(e.Message);
+            return false;
         }
     }
 
@@ -46,7 +55,7 @@ public class TreeWalkInterpreter : IInterpreter
         switch (stmt)
         {
             case BlockStmt blockStmt:
-                ExecuteBlockStmt(blockStmt, new Environment(_environment));
+                ExecuteBlock(blockStmt, new Environment(_environment));
                 break;
             case BreakStmt:
                 throw new BreakException();
@@ -58,11 +67,17 @@ public class TreeWalkInterpreter : IInterpreter
             case ExprStmt exprStmt:
                 Eval(exprStmt.Expr);
                 break;
+            case FunctionStmt functionStmt:
+                ExecuteFunctionStmt(functionStmt);
+                break;
             case IfStmt ifStmt:
                 ExecuteIfStmt(ifStmt);
                 break;
             case PrintStmt printStmt:
                 ExecutePrintStmt(printStmt);
+                break;
+            case ReturnStmt returnStmt:
+                ExecuteReturnStmt(returnStmt);
                 break;
             case SwitchStmt switchStmt:
                 ExecuteSwitchStmt(switchStmt);
@@ -78,7 +93,7 @@ public class TreeWalkInterpreter : IInterpreter
         }
     }
 
-    private void ExecuteBlockStmt(BlockStmt blockStmt, Environment environment)
+    public void ExecuteBlock(BlockStmt blockStmt, Environment environment)
     {
         // Save reference to the previous environment so we can restore it once entering this block's scope.
         var previous = _environment;
@@ -117,6 +132,12 @@ public class TreeWalkInterpreter : IInterpreter
             // break statement - exit loop
         }
     }
+
+    private void ExecuteFunctionStmt(FunctionStmt functionStmt)
+    {
+        var function = new UserDefinedFunction(functionStmt);
+        _environment.Define(functionStmt.Name, ShimmerValue.Function(function));
+    }
     
     private void ExecuteIfStmt(IfStmt ifStmt)
     {
@@ -133,6 +154,8 @@ public class TreeWalkInterpreter : IInterpreter
     }
 
     private void ExecutePrintStmt(PrintStmt printStmt) => _outputWriter.WriteLine(Eval(printStmt.Expr).ToString());
+
+    private void ExecuteReturnStmt(ReturnStmt returnStmt) => throw new ReturnValue(Eval(returnStmt.Expr));
 
     private void ExecuteSwitchStmt(SwitchStmt switchStmt)
     {
@@ -183,6 +206,7 @@ public class TreeWalkInterpreter : IInterpreter
     {
         AssignExpr assignExpr => EvalAssignExpr(assignExpr),
         BinaryExpr binaryExpr => EvalBinaryExpr(binaryExpr),
+        CallExpr callExpr => EvalCallExpr(callExpr),
         ConditionalExpr conditionalExpr => EvalConditionalExpr(conditionalExpr),
         GroupExpr groupExpr => Eval(groupExpr.Expr),
         LiteralExpr literalExpr => literalExpr.Value,
@@ -297,6 +321,22 @@ public class TreeWalkInterpreter : IInterpreter
         }
     }
 
+    private ShimmerValue EvalCallExpr(CallExpr callExpr)
+    {
+        var callee = Eval(callExpr.Callee);
+        var args = callExpr.Arguments.Select(Eval).ToList();
+        
+        if (!callee.IsFunction)
+            throw RuntimeError.Create(callExpr.Paren, $"Can not call '{callee.Type}' type.");
+
+        var function = callee.AsFunction;
+
+        if (args.Count != function.Arity)
+            throw RuntimeError.Create(callExpr.Paren, $"Expected {function.Arity} arguments but got {args.Count}.");
+        
+        return callee.AsFunction.Call(this, args);
+    }
+    
     private ShimmerValue EvalConditionalExpr(ConditionalExpr conditionalExpr) =>
         IsTruthy(Eval(conditionalExpr.Condition)) ? Eval(conditionalExpr.ThenExpr) : Eval(conditionalExpr.ElseExpr);
     

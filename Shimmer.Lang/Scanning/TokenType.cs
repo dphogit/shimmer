@@ -49,6 +49,8 @@ public enum TokenType
     Switch,
     Case,
     Default,
+    Function,
+    Return,
     Nil,
 
     // Misc

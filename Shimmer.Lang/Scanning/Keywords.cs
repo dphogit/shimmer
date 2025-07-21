@@ -14,10 +14,12 @@ public static class Keywords
             ["do"] = TokenType.Do,
             ["false"] = TokenType.False,
             ["for"] = TokenType.For,
+            ["function"] = TokenType.Function,
             ["if"] = TokenType.If,
             ["else"] = TokenType.Else,
             ["nil"] = TokenType.Nil,
             ["print"] = TokenType.Print,
+            ["return"] = TokenType.Return,
             ["switch"] = TokenType.Switch,
             ["true"] = TokenType.True,
             ["var"] = TokenType.Var,
@@ -27,8 +29,9 @@ public static class Keywords
     public static TokenType? GetTokenType(string keyword) =>
         KeywordToType.TryGetValue(keyword, out var type) ? type : null;
 
-    public static TokenType[] StatementStarters =>
+    public static readonly TokenType[] StatementStarters =
     [
-        TokenType.Do, TokenType.For, TokenType.If, TokenType.Print, TokenType.Switch, TokenType.Var, TokenType.While
+        TokenType.Do, TokenType.For, TokenType.Function, TokenType.If, TokenType.LeftBrace, TokenType.Print,
+        TokenType.Return, TokenType.Switch, TokenType.Var, TokenType.While
     ];
 }
