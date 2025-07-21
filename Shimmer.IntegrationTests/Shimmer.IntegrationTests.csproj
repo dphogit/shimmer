@@ -11,7 +11,7 @@
         <PackageReference Include="coverlet.collector" Version="6.0.2"/>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1"/>
         <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2"/>
-        <PackageReference Include="xunit.v3" Version="2.0.3" />
+        <PackageReference Include="xunit.v3" Version="2.0.3"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -19,8 +19,13 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Shimmer.Lang\Shimmer.Lang.csproj" />
-      <ProjectReference Include="..\Shimmer.UnitTests\Shimmer.UnitTests.csproj" />
+        <ProjectReference Include="..\Shimmer.Lang\Shimmer.Lang.csproj"/>
+        <ProjectReference Include="..\Shimmer.UnitTests\Shimmer.UnitTests.csproj"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <Content Include="ShimmerPrograms\**\*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
 </Project>

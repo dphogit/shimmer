@@ -1,0 +1,17 @@
+﻿/* THIS FILE SHOULD NOT BE ABLE TO BE EXECUTED BY THE INTERPRETER BECAUSE IT DOES NOT HAVE A .shim EXTENSION. */
+
+/*
+ * Calculates the nth fibonacci number.
+ * Base Case:       f(0) = 0, f(1) = 1
+ * Recursive Case:  f(n) = f(n - 1) + f(n - 2)
+ */
+function fib(n) {
+    if (n < 2) return n;
+    return fib(n - 1) + fib(n - 2); 
+} 
+
+// Print the 10 fibonacci numbers
+var n = 10;
+for (var i = 0; i < n; i = i + 1) {
+    print fib(i);
+}

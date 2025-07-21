@@ -30,11 +30,7 @@ void Repl()
     }
 }
 
-ExitCode RunFile(string path)
-{
-    var source = File.ReadAllText(path);
-    return driver.Run(source) ? ExitCode.Success : ExitCode.Failure;
-}
+ExitCode RunFile(string path) => driver.RunFile(path) ? ExitCode.Success : ExitCode.Failure;
 
 internal enum ExitCode
 {
