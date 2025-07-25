@@ -93,6 +93,57 @@ public class EnvironmentTests
     }
 
     [Fact]
+    public void GetAt_ExactDistance_ReturnsValue()
+    {
+        // Arrange
+        var name = _tokenFactory.Identifier("x");
+        
+        var enclosing = new Environment();
+        enclosing.Define(name, ShimmerValue.Number(1));
+        
+        var env = new Environment(enclosing);
+        
+        // Act
+        var value = env.GetAt(name, 1);
+        
+        // Assert
+        Assert.Equal(1, value.AsNumber);
+    }
+    
+    [Fact]
+    public void GetAt_DistanceExceedsNumberOfAncestors_ThrowsArgumentException()
+    {
+        // Arrange
+        var name = _tokenFactory.Identifier("x");
+        
+        var enclosing = new Environment();
+        enclosing.Define(name, ShimmerValue.Number(1));
+        
+        var env = new Environment(enclosing);
+        
+        // Act
+        var action = () => env.GetAt(name, 2);
+        
+        // Assert
+        var error = Assert.Throws<ArgumentException>(action);
+        Assert.Contains("Distance exceeds number of ancestors.", error.Message);
+    }
+
+    [Fact]
+    public void GetAt_NegativeDistance_ThrowsArgumentOutOfRangeException()
+    {
+        // Arrange
+        var name = _tokenFactory.Identifier("x");
+        var env = new Environment();
+        
+        // Act
+        var action = () => env.GetAt(name, -1);
+        
+        // Assert
+        Assert.Throws<ArgumentOutOfRangeException>(action);
+    }
+
+    [Fact]
     public void Assign_DefinedVariable_UpdatesValue()
     {
         // Arrange
@@ -142,5 +193,76 @@ public class EnvironmentTests
         // Assert
         var value = env.Get(name);
         Assert.Equal(2, value.AsNumber);
+    }
+    
+    [Fact]
+    public void AssignAt_DefinedVariableAtDistance_UpdatesValue()
+    {
+        // Arrange
+        var name = _tokenFactory.Identifier("x");
+        
+        var enclosing = new Environment();
+        enclosing.Define(name, ShimmerValue.Number(1));
+        
+        var env = new Environment(enclosing);
+        
+        // Act
+        env.AssignAt(name,  ShimmerValue.Number(2), 1);
+        
+        // Assert
+        var value = env.Get(name);
+        Assert.Equal(2, value.AsNumber);
+    }
+
+    [Fact]
+    public void AssignAt_UndefinedVariableAtDistance_ThrowsRuntimeError()
+    {
+        // Arrange
+        var name = _tokenFactory.Identifier("x");
+        
+        var enclosing = new Environment();
+        enclosing.Define(name, ShimmerValue.Number(1));
+        
+        var env = new Environment(enclosing);
+        
+        // Act
+        var action = () => env.AssignAt(name,  ShimmerValue.Number(2), 0);
+        
+        // Assert
+        var error = Assert.Throws<RuntimeError>(action);
+        error.Message.AssertRuntimeError(1, $"Undefined variable '{name.Lexeme}'.");
+    }
+
+    [Fact]
+    public void AssignAt_NegativeDistance_ThrowsArgumentOutOfRangeException()
+    {
+        // Arrange
+        var name = _tokenFactory.Identifier("x");
+        
+        var env = new Environment();
+        env.Define(name, ShimmerValue.Number(1));
+        
+        // Act
+        var action = () => env.AssignAt(name, ShimmerValue.Number(2), -1);
+        
+        // Assert
+        Assert.Throws<ArgumentOutOfRangeException>(action);
+    }
+
+    [Fact]
+    public void AssignAt_DistanceExceedsNumberOfAncestors_ThrowsArgumentException()
+    {
+        // Arrange
+        var name = _tokenFactory.Identifier("x");
+        
+        var env = new Environment();
+        env.Define(name, ShimmerValue.Number(1));
+        
+        // Act
+        var action = () => env.AssignAt(name, ShimmerValue.Number(2), 1);
+        
+        // Assert
+        var error = Assert.Throws<ArgumentException>(action);
+        Assert.Contains("Distance exceeds number of ancestors.", error.Message);
     }
 }

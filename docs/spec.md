@@ -209,11 +209,12 @@ defaultCase = "default" ":" statement* ;
 
 whileStmt   = "while" "(" expression ")" statement ;
 
+(* clauses include the initializer, condition, and increment - which are all optional. *)
 forStmt     = "for" "("
-              ( varDecl | exprStmt | ";" )    (* initializer *)
-              expression? ";"                 (* condition *)
-              expression? ")"                 (* increment *)
-              statement ;                     (* loop body *)
+              ( varDecl | exprStmt | ";" )
+              expression? ";"
+              expression? ")"
+              statement ;
               
 doWhileStmt = "do" statement "while" "(" expression ")" ";" ;
               

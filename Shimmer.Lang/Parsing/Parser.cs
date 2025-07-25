@@ -16,8 +16,6 @@ public class Parser
     private Token _current = null!;
     private Token _prev = null!;
 
-    private int _loopDepth = 0;
-
     private class ParseException(string message) : Exception(message);
 
     private readonly IScanner _scanner;
@@ -210,114 +208,63 @@ public class Parser
     
     private WhileStmt WhileStmt()
     {
-        try
-        {
-            _loopDepth++;
+        Consume(TokenType.LeftParen, "Expect '(' after 'while'.");
+        var condition = Expression();
+        Consume(TokenType.RightParen, "Expect ')' after 'while' condition.");
 
-            Consume(TokenType.LeftParen, "Expect '(' after 'while'.");
-            var condition = Expression();
-            Consume(TokenType.RightParen, "Expect ')' after 'while' condition.");
-
-            var body = Statement();
-            return new WhileStmt(condition, body);
-        }
-        finally
-        {
-            _loopDepth--;
-        }
+        var body = Statement();
+        return new WhileStmt(condition, body);
     }
 
-    /*
-     * The `for` loop is desugared into a while statement => { initializer; while (condition) { body; increment; } }
-     * Some of the `for` clause semantics can be shortcut if not given.
-     */
-    private Stmt ForStmt()
+    private ForStmt ForStmt()
     {
-        try
-        {
-            _loopDepth++;
-            
-            Consume(TokenType.LeftParen, "Expect '(' after 'for'.");
-
-            Stmt? initializer;
-            if (Match(TokenType.SemiColon))
-                initializer = null;
-            else if (Match(TokenType.Var))
-                initializer = VarDecl();
-            else
-                initializer = ExprStmt();
-
-            // If no condition is given, we default it to true.
-            var condition = Check(TokenType.SemiColon) ? LiteralExpr.True : Expression();
-            Consume(TokenType.SemiColon, "Expect ';' after 'for' condition.");
-
-            var increment = Check(TokenType.RightParen) ? null : Expression();
-            Consume(TokenType.RightParen, "Expect ')' after 'for' clauses.");
-
-            var body = Statement();
-            ExprStmt? incrementStmt = null;
-
-            // If there is an increment, the body is now a new block with the increment after the existing loop body.
-            if (increment is not null)
-            {
-                incrementStmt = new ExprStmt(increment);
-                body = new BlockStmt([body, incrementStmt]);
-            }
-
-            var whileStmt = new WhileStmt(condition, body, incrementStmt);
-
-            // If there is no initializer, then we have the condition and body. We can return the WhileStmt as is.
-            if (initializer is null)
-                return whileStmt;
-
-            // Otherwise, an initializer is given. Create a new outer block to execute the initializer once,
-            // then followed up by the existing while statement.
-            return new BlockStmt([initializer, new WhileStmt(condition, body, incrementStmt)]);
-        }
-        finally
-        {
-            _loopDepth--;
-        }
+        Consume(TokenType.LeftParen, "Expect '(' after 'for'.");
+        
+        Stmt? initializer;
+        if (Match(TokenType.SemiColon))
+            initializer = null;
+        else if (Match(TokenType.Var))
+            initializer = VarDecl();
+        else
+            initializer = ExprStmt();
+        
+        // If no condition is given, we default it to true.
+        var condition = Check(TokenType.SemiColon) ? LiteralExpr.True : Expression();
+        Consume(TokenType.SemiColon, "Expect ';' after 'for' condition.");
+        
+        var increment = Check(TokenType.RightParen) ? null : new ExprStmt(Expression());
+        Consume(TokenType.RightParen, "Expect ')' after 'for' clauses.");
+        
+        var body = Statement();
+        
+        return new ForStmt(initializer, condition, increment, body);
     }
 
     private DoWhileStmt DoWhileStmt()
     {
-        try
-        {
-            _loopDepth++;
-            
-            var body = Statement();
-            
-            Consume(TokenType.While, "Expect 'while' after 'do' body.");
-            Consume(TokenType.LeftParen, "Expect '(' after 'while'.");
-            var condition = Expression();
-            Consume(TokenType.RightParen, "Expect ')' after 'while' condition.");
-            Consume(TokenType.SemiColon, "Expect ';' after 'do-while' condition.");
+        var body = Statement();
 
-            return new DoWhileStmt(body, condition);
-        }
-        finally
-        {
-            _loopDepth--;
-        }
+        Consume(TokenType.While, "Expect 'while' after 'do' body.");
+        Consume(TokenType.LeftParen, "Expect '(' after 'while'.");
+        var condition = Expression();
+        Consume(TokenType.RightParen, "Expect ')' after 'while' condition.");
+        Consume(TokenType.SemiColon, "Expect ';' after 'do-while' condition.");
+
+        return new DoWhileStmt(body, condition);
     }
     
     private BreakStmt BreakStmt()
     {
-        if (_loopDepth == 0)
-            Error(_prev, "Must be inside a loop to break.");
-        
+        var keyword = _prev;
         Consume(TokenType.SemiColon, "Expect ';' after 'break'.");
-        return new BreakStmt();
+        return new BreakStmt(keyword);
     }
 
     private ContinueStmt ContinueStmt()
     {
-        if (_loopDepth == 0)
-            Error(_prev, "Must be inside a loop to continue.");
-        
+        var keyword = _prev;
         Consume(TokenType.SemiColon, "Expect ';' after 'continue'.");
-        return new ContinueStmt();
+        return new ContinueStmt(keyword);
     }
 
     private ReturnStmt ReturnStmt()

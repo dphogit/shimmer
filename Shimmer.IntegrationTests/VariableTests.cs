@@ -47,4 +47,23 @@ public class VariableTests : BaseIntegrationTest
         
         RunTest(source, expected);
     }
+
+    [Fact]
+    public void BeforeShadowLocal()
+    {
+        const string source = """
+                              {
+                                var x = "local";
+                                {
+                                  print x;
+                                  var x = "shadow";
+                                }
+                                print x;
+                              }
+                              """;
+
+        var expected = $"\"local\"{Environment.NewLine}\"local\"";
+        
+        RunTest(source, expected);
+    }
 }

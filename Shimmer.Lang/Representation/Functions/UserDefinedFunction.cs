@@ -4,14 +4,14 @@ using Environment = Shimmer.Interpreter.Environment;
 
 namespace Shimmer.Representation.Functions;
 
-public class UserDefinedFunction(FunctionStmt declaration) : ShimmerFunction
+public class UserDefinedFunction(FunctionStmt declaration, Environment closure) : ShimmerFunction
 {
     public override int Arity { get; } = declaration.Parameters.Count;
     public override string Name { get; } = declaration.Name.Lexeme;
 
     public override ShimmerValue Call(IInterpreter interpreter, IList<ShimmerValue> args)
     {
-        var callEnvironment = BindParameters(interpreter, args);
+        var callEnvironment = BindParameters(args);
         
         try
         {
@@ -26,12 +26,12 @@ public class UserDefinedFunction(FunctionStmt declaration) : ShimmerFunction
     }
 
     // Each function call gets its own environment, encapsulating its parameters bound to the called arguments.
-    private Environment BindParameters(IInterpreter interpreter, IList<ShimmerValue> args)
+    private Environment BindParameters(IList<ShimmerValue> args)
     {
         if (Arity != args.Count)
             throw new InvalidOperationException($"Expected {Arity} arguments, got {args.Count}");
         
-        var environment = new Environment(interpreter.Globals);
+        var environment = new Environment(closure);
 
         for (var i = 0; i < Arity; i++)
             environment.Define(declaration.Parameters[i], args[i]);

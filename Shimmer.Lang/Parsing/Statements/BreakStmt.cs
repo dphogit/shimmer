@@ -1,6 +1,10 @@
-﻿namespace Shimmer.Parsing.Statements;
+﻿using Shimmer.Scanning;
 
-public class BreakStmt : Stmt
+namespace Shimmer.Parsing.Statements;
+
+public class BreakStmt(Token keyword) : Stmt
 {
     public override string ToString() => "break";
+    
+    public Token Keyword { get; } = keyword;
 }

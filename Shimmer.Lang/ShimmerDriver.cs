@@ -1,5 +1,6 @@
 ﻿using Shimmer.Interpreter;
 using Shimmer.Parsing;
+using Shimmer.Resolving;
 
 namespace Shimmer;
 
@@ -7,7 +8,7 @@ public class ShimmerDriver
 {
     private readonly TextWriter _stderr;
 
-    private readonly IInterpreter _interpreter;
+    private readonly TreeWalkInterpreter _interpreter;
 
     public ShimmerDriver(TextWriter? stdout = null, TextWriter? stderr = null)
     {
@@ -30,7 +31,13 @@ public class ShimmerDriver
         if (parser.HadError)
             return false;
 
-        return _interpreter.Interpret(ast);
+        var resolver = new Resolver(_stderr);
+        var resolutionDict = resolver.Resolve(ast);
+
+        if (resolver.HadError)
+            return false;
+
+        return _interpreter.Interpret(ast, resolutionDict);
     }
 
     /// <summary>

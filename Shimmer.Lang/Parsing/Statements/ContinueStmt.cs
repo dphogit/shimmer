@@ -1,6 +1,10 @@
-﻿namespace Shimmer.Parsing.Statements;
+﻿using Shimmer.Scanning;
 
-public class ContinueStmt : Stmt
+namespace Shimmer.Parsing.Statements;
+
+public class ContinueStmt(Token keyword) : Stmt
 {
     public override string ToString() => "continue";
+    
+    public Token Keyword { get; } = keyword;
 }

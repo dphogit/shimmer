@@ -12,16 +12,17 @@ public class TreeWalkInterpreter : IInterpreter
     private class ContinueException : Exception;
 
     // Store references to the global and current execution environments.
-    public Environment Globals { get; }
+    private readonly Environment _globals;
     private Environment _environment;
-    
+
+    private IReadOnlyDictionary<Expr, int> _resolutionDict = new Dictionary<Expr, int>();
+        
     private readonly TextWriter _outputWriter;
     private readonly TextWriter _errorWriter;
 
     /// <summary>
-    /// The interpreter walks the given AST in its <see cref="Interpret"/> method,
-    /// redirecting output to <paramref name="outputWriter" /> and errors
-    /// to <paramref name="errorWriter"/>
+    /// The interpreter walks the given AST in its <see cref="Interpret"/> method, redirecting output to
+    /// <paramref name="outputWriter" /> and errors to <paramref name="errorWriter"/>
     /// </summary>
     /// <param name="outputWriter">Defaults to <see cref="Console.Out"/>.</param>
     /// <param name="errorWriter">Defaults to <see cref="Console.Error"/>.</param>
@@ -30,12 +31,14 @@ public class TreeWalkInterpreter : IInterpreter
         _outputWriter = outputWriter ?? Console.Out;
         _errorWriter = errorWriter ?? Console.Error;
         
-        Globals = Environment.CreateGlobal();
-        _environment = Globals;
+        _globals = Environment.CreateGlobal();
+        _environment = _globals;
     }
 
-    public bool Interpret(IList<Stmt> stmts)
+    public bool Interpret(IList<Stmt> stmts, IReadOnlyDictionary<Expr, int>? resolutionDict = null)
     {
+        _resolutionDict = resolutionDict ?? new Dictionary<Expr, int>();
+        
         try
         {
             foreach (var stmt in stmts)
@@ -67,6 +70,9 @@ public class TreeWalkInterpreter : IInterpreter
             case ExprStmt exprStmt:
                 Eval(exprStmt.Expr);
                 break;
+            case ForStmt forStmt:
+                ExecuteForStmt(forStmt);
+                break;
             case FunctionStmt functionStmt:
                 ExecuteFunctionStmt(functionStmt);
                 break;
@@ -89,7 +95,7 @@ public class TreeWalkInterpreter : IInterpreter
                 ExecuteWhileStmt(whileStmt);
                 break;
             default:
-                throw new ArgumentException($"Cannot execute statement type '{stmt.GetType().Name}.");
+                throw new ArgumentException($"Cannot execute statement type '{stmt.GetType().Name}'.");
         }
     }
 
@@ -133,9 +139,35 @@ public class TreeWalkInterpreter : IInterpreter
         }
     }
 
+    private void ExecuteForStmt(ForStmt forStmt)
+    {
+        if (forStmt.Initializer is not null)
+            Execute(forStmt.Initializer);
+
+        while (IsTruthy(Eval(forStmt.Condition)))
+        {
+            try
+            {
+                Execute(forStmt.Body);
+            }
+            catch (BreakException)
+            {
+                // break statement - exit loop 
+                break;
+            }
+            catch (ContinueException)
+            {
+                // continue statement - execute the increment before beginning the next iteration
+            }
+            
+            if (forStmt.Increment is not null)
+                Execute(forStmt.Increment);
+        }
+    }
+
     private void ExecuteFunctionStmt(FunctionStmt functionStmt)
     {
-        var function = new UserDefinedFunction(functionStmt);
+        var function = new UserDefinedFunction(functionStmt, _environment);
         _environment.Define(functionStmt.Name, ShimmerValue.Function(function));
     }
     
@@ -191,8 +223,6 @@ public class TreeWalkInterpreter : IInterpreter
                 catch (ContinueException)
                 {
                     // continue statement - increment if the clause is given (for loops)
-                    if (whileStmt.Increment is not null)
-                        Execute(whileStmt.Increment);
                 }
             }
         }
@@ -217,8 +247,14 @@ public class TreeWalkInterpreter : IInterpreter
 
     private ShimmerValue EvalAssignExpr(AssignExpr assignExpr)
     {
+        var name = assignExpr.Name;
         var value = Eval(assignExpr.Value);
-        _environment.Assign(assignExpr.Name, value);
+
+        if (_resolutionDict.TryGetValue(assignExpr, out var distance))
+            _environment.AssignAt(name, value, distance);
+        else
+            _globals.Assign(name, value);
+        
         return value;
     }
 
@@ -334,7 +370,7 @@ public class TreeWalkInterpreter : IInterpreter
         if (args.Count != function.Arity)
             throw RuntimeError.Create(callExpr.Paren, $"Expected {function.Arity} arguments but got {args.Count}.");
         
-        return callee.AsFunction.Call(this, args);
+        return function.Call(this, args);
     }
     
     private ShimmerValue EvalConditionalExpr(ConditionalExpr conditionalExpr) =>
@@ -357,7 +393,14 @@ public class TreeWalkInterpreter : IInterpreter
         };
     }
 
-    private ShimmerValue EvalVarExpr(VarExpr varExpr) => _environment.Get(varExpr.Name);
+    private ShimmerValue EvalVarExpr(VarExpr varExpr) => LookupVariable(varExpr.Name, varExpr);
+
+    private ShimmerValue LookupVariable(Token name, Expr expr)
+    {
+        return _resolutionDict.TryGetValue(expr, out var distance)
+            ? _environment.GetAt(name, distance)
+            : _globals.Get(name);
+    }
 
     private static bool IsFalsy(ShimmerValue value) => value.IsNil || value is { IsBool: true, AsBool: false };
     private static bool IsTruthy(ShimmerValue value) => !IsFalsy(value);

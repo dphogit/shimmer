@@ -94,7 +94,7 @@ public class ParserTests
     }
 
     [Fact]
-    public void Parse_Loop_ReturnsEquivalentWhileStmt()
+    public void Parse_WhileLoop_ReturnsWhileStmt()
     {
         const string source = "while (true) print 1;";
         const string expected = "(while (true) (print 1) )";
@@ -102,35 +102,35 @@ public class ParserTests
     }
 
     [Fact]
-    public void Parse_ForLoop_DesugarsIntoBlockStmt()
+    public void Parse_ForLoop_ReturnsForStmt()
     {
         const string source = "for (var i = 0; i < 10; i = i + 1) print i;";
-        const string expected = "{ (var i = 0) (while ((i < 10)) { (print i) (i = (i + 1)) } ) }";
-        RunParseTest<BlockStmt>(source, expected);
+        const string expected = "(for (var i = 0) (i < 10) (i = (i + 1)) (print i))";
+        RunParseTest<ForStmt>(source, expected);
     }
     
     [Fact]
-    public void Parse_ForLoopNoInitializer_DesugarsIntoWhileStmt()
+    public void Parse_ForLoopNoInitializer_ReturnsForStmt()
     {
         const string source = "for (; i < 10; i = i + 1) print i;";
-        const string expected = "(while ((i < 10)) { (print i) (i = (i + 1)) } )";
-        RunParseTest<WhileStmt>(source, expected);
+        const string expected = "(for () (i < 10) (i = (i + 1)) (print i))";
+        RunParseTest<ForStmt>(source, expected);
     }
 
     [Fact]
-    public void Parse_ForLoopNoIncrement_DesugarsIntoBlockStmt()
+    public void Parse_ForLoopNoIncrement_ReturnsForStmt()
     {
         const string source = "for (var i = 0; i < 10;) print i;";
-        const string expected = "{ (var i = 0) (while ((i < 10)) (print i) ) }";
-        RunParseTest<BlockStmt>(source, expected);
+        const string expected = "(for (var i = 0) (i < 10) () (print i))";
+        RunParseTest<ForStmt>(source, expected);
     }
 
     [Fact]
-    public void Parse_ForLoopNoCondition_DesugarsIntoBlockStmt()
+    public void Parse_ForLoopNoCondition_ReturnsForStmt()
     {
         const string source = "for (var i = 0; ; i = i + 1) print i;";
-        const string expected = "{ (var i = 0) (while (true) { (print i) (i = (i + 1)) } ) }";
-        RunParseTest<BlockStmt>(source, expected);
+        const string expected = "(for (var i = 0) true (i = (i + 1)) (print i))";
+        RunParseTest<ForStmt>(source, expected);
     }
 
     [Fact]

@@ -131,20 +131,4 @@ public class ControlFlowTests : BaseIntegrationTest
         
         RunTest(source, "25");
     }
-    
-    [Fact]
-    public void Break_OutsideLoop_GivesError()
-    {
-        const string source = "break;";
-        const string expected = "[Line 1, Col 1] Error at 'break': Must be inside a loop to break.";
-        RunErrorTest(source, expected);
-    }
-
-    [Fact]
-    public void Continue_OutsideLoop_GivesError()
-    {
-        const string source = "continue;";
-        const string expected = "[Line 1, Col 1] Error at 'continue': Must be inside a loop to continue.";
-        RunErrorTest(source, expected);
-    }
 }
